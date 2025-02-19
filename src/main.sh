@@ -1,13 +1,16 @@
 #!/bin/bash
 
+# Get absolute path to script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Source installation modules
-source "$(dirname "$0")/lib/install_grafana.sh"
-source "$(dirname "$0")/lib/install_prometheus.sh"
-source "$(dirname "$0")/lib/install_node_exporter.sh"
-source "$(dirname "$0")/lib/install_mysql_exporter.sh"
-source "$(dirname "$0")/lib/install_blackbox_exporter.sh"
-source "$(dirname "$0")/lib/install_pm2_exporter.sh"
-source "$(dirname "$0")/lib/install_duplicati_exporter.sh"
+source "${SCRIPT_DIR}/lib/install_grafana.sh"
+source "${SCRIPT_DIR}/lib/install_prometheus.sh"
+source "${SCRIPT_DIR}/lib/install_node_exporter.sh"
+source "${SCRIPT_DIR}/lib/install_mysql_exporter.sh"
+source "${SCRIPT_DIR}/lib/install_blackbox_exporter.sh"
+source "${SCRIPT_DIR}/lib/install_pm2_exporter.sh"
+source "${SCRIPT_DIR}/lib/install_duplicati_exporter.sh"
 
 # Monitoring Stack Installation Script
 # Version: 1.0.0
@@ -293,8 +296,7 @@ copy_dashboard_templates() {
 
     local dashboard_dir="/etc/grafana/dashboards"
     local notifiers_dir="/etc/grafana/provisioning/notifiers"
-    local script_dir="$(cd "$(dirname "$0")" && pwd)"
-    local source_dir="$script_dir/config/grafana/provisioning"
+    local source_dir="${SCRIPT_DIR}/config/grafana/provisioning"
 
     # Create required directories
     mkdir -p "$dashboard_dir"

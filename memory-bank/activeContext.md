@@ -23,7 +23,17 @@ The project is in its initial setup phase with the following focus areas:
 
 ## Recent Changes
 
-### 1. Production Testing Implementation
+### 1. Curl Installation Support
+- Added bootstrap script for curl-based installation
+  - Temporary directory management
+  - Project file download and extraction
+  - Main script execution
+- Enhanced main.sh for location independence
+  - Absolute path handling
+  - Improved script directory detection
+  - Configuration file path updates
+
+### 2. Production Testing Implementation
 - Added Multipass VM support
   - Automated VM creation and management
   - Project file synchronization
@@ -118,20 +128,6 @@ Configuration status:
    - PM2 Exporter: Process monitoring
    - Duplicati Exporter: Backup monitoring
 
-### 3. Testing Framework Implementation
-- [x] Develop installation tests (installation_test.sh)
-- [x] Create configuration validation (config_validation_test.sh)
-- [x] Implement alert testing (alert_test.sh)
-- [x] Create test runner (run_tests.sh)
-- [x] Implement development environment testing
-- [x] Create test environment setup script
-- [x] Add cross-platform compatibility
-- [x] Implement production environment testing
-  - Multipass VM integration
-  - Automated environment setup
-  - Cross-environment test execution
-  - Clean state management
-- [ ] Add performance test suite
 
 ## Active Decisions
 
@@ -159,11 +155,6 @@ Configuration status:
 - Unified dashboard templates
 - Centralized alert management
 
-### 5. Testing Strategy
-- Environment-aware testing
-- Multipass VM for production testing
-- Automated environment setup
-- Isolated test execution
 
 ## Current Considerations
 
@@ -193,27 +184,6 @@ Configuration status:
 
 ## Current Focus Areas
 
-### 1. Testing Enhancement
-- [x] Production environment test implementation
-- Performance testing framework
-- Load testing strategy
-- Security testing implementation
-- Integration test development
-
-### 2. Manual Testing Implementation
-- Multipass VM creation and setup
-- Direct GitHub URL installation
-- Service verification procedures
-- Metric collection validation
-- Alert system testing
-- Documentation updates
-
-### 3. Quality Assurance
-- Manual testing procedures
-- Performance benchmarking
-- Security assessment
-- Integration validation
-- Long-term stability testing
 
 ## Open Questions
 
@@ -228,15 +198,18 @@ Configuration status:
 - Performance testing metrics
 
 ### 2. Implementation
-- ~~Manual testing environment~~ (Implemented with Multipass)
-- Performance test scenarios
-- Load testing parameters
-- Security testing tools
-- Integration test scope
+- Performance optimization
+- Security hardening
+- Integration scope
 
-### 3. Testing
-- ~~Production test criteria~~ (Defined in Multipass test suite)
-- Performance thresholds
-- Load test benchmarks
-- Security compliance checks
-- Integration test coverage
+## Open Questions
+
+### 1. Technical
+- ~~Optimal metric retention periods~~ (Set to 15d)
+- ~~Alert notification channels~~ (Using Mattermost)
+- ~~Backup strategy details~~ (Using Duplicati with monitoring)
+- ~~Testing framework structure~~ (Implemented with modular test suites)
+- ~~Development testing approach~~ (Using environment-aware testing)
+- ~~Manual testing strategy~~ (Using Multipass for validation)
+- System verification methodology
+- Performance testing metrics

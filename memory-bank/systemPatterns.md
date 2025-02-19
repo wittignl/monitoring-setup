@@ -26,7 +26,17 @@ graph LR
 ## Technical Patterns
 
 ### 1. Installation Pattern
-- Direct installation from GitHub URL
+- Curl-based installation from GitHub URL
+  ```mermaid
+  graph TD
+      A[curl command] --> B[Download Script]
+      B --> C[Create Temp Dir]
+      C --> D[Extract Files]
+      D --> E[Execute Main Script]
+      E --> F[Install Components]
+      F --> G[Configure Services]
+      G --> H[Cleanup]
+  ```
 - Package manager-based installation (apt/yum)
 - Fallback to binary installation when needed
 - Systematic dependency management

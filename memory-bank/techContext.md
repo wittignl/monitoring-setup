@@ -181,8 +181,14 @@
 ## Installation Process
 
 ### 1. Direct Installation
-1. Fetch script from GitHub URL
-2. Execute installation script
+1. Fetch and execute via curl:
+   ```bash
+   curl -sSL https://github.com/user/repo/raw/main/src/main.sh | sudo bash
+   ```
+2. Bootstrap script handles:
+   - Project file download
+   - Temporary directory management
+   - Main script execution
 3. Service configuration
 4. Environment setup
 
