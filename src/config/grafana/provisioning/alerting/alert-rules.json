@@ -1,0 +1,181 @@
+{
+    "apiVersion": 1,
+    "groups": [
+        {
+            "orgId": 1,
+            "name": "DISK web alert",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "e3e7e1f3-e760-48ce-b46e-8f43d8848a5b",
+                    "title": "DISK web",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": {
+                                "from": 300,
+                                "to": 0
+                            },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "1 - node_filesystem_free_bytes{job='node',fstype!='rootfs',mountpoint=\"/\"} / node_filesystem_size_bytes{job='node',mountpoint=\"/\"}",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": {
+                                "from": 0,
+                                "to": 0
+                            },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": {
+                                            "params": [0.8, 0],
+                                            "type": "gt"
+                                        },
+                                        "operator": {
+                                            "type": "and"
+                                        },
+                                        "query": {
+                                            "params": ["A"]
+                                        },
+                                        "reducer": {
+                                            "params": [],
+                                            "type": "avg"
+                                        },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": {
+                                    "name": "Expression",
+                                    "type": "__expr__",
+                                    "uid": "__expr__"
+                                },
+                                "expression": "",
+                                "hide": false,
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "0IqVYsaVk",
+                    "panelId": 20,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": {
+                        "__dashboardUid__": "0IqVYsaVk",
+                        "__panelId__": "20",
+                        "description": "Disk usage is above 80%",
+                        "summary": "High disk usage detected"
+                    },
+                    "labels": {
+                        "alertname": "DISK web ALERT",
+                        "severity": "warning",
+                        "instance": "{{$labels.instance}}"
+                    },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "Duplicati Backup Status",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "duplicati-backup-status",
+                    "title": "Duplicati Backup Failed",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": {
+                                "from": 300,
+                                "to": 0
+                            },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "duplicati_backup_status",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": {
+                                "from": 0,
+                                "to": 0
+                            },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": {
+                                            "params": [1, 0],
+                                            "type": "lt"
+                                        },
+                                        "operator": {
+                                            "type": "and"
+                                        },
+                                        "query": {
+                                            "params": ["A"]
+                                        },
+                                        "reducer": {
+                                            "params": [],
+                                            "type": "last"
+                                        },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": {
+                                    "name": "Expression",
+                                    "type": "__expr__",
+                                    "uid": "__expr__"
+                                },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": {
+                        "description": "Duplicati backup has failed",
+                        "summary": "Backup '{{$labels.backup_name}}' on '{{$labels.machine_name}}' failed"
+                    },
+                    "labels": {
+                        "alertname": "Duplicati Backup Failed",
+                        "severity": "critical",
+                        "backup_name": "{{$labels.backup_name}}",
+                        "machine_name": "{{$labels.machine_name}}"
+                    },
+                    "isPaused": false
+                }
+            ]
+        }
+    ]
+}

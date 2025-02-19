@@ -1,0 +1,7 @@
+apiVersion: 1
+notifiers:
+  - name: Mattermost
+    type: mattermost
+    uid: mattermost1
+    settings:
+      url: http://localhost:8065/hooks/xxx

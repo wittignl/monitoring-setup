@@ -1,0 +1,40 @@
+apiVersion: 1
+
+notifiers:
+  - name: Mattermost
+    type: webhook
+    uid: mattermost_alerts
+    org_id: 1
+    is_default: true
+    send_reminder: true
+    frequency: 4h
+    disable_resolve_message: false
+    settings:
+      url: ${MATTERMOST_WEBHOOK_URL}
+      httpMethod: POST
+      maxAlerts: 10
+
+    # Customize the message format
+    settings.message: |-
+      {{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}
+
+      {{ if .CommonAnnotations.description }}
+      {{ .CommonAnnotations.description }}
+      {{ end }}
+
+      Details:
+      {{ range .Alerts -}}
+      * {{ .Annotations.summary }}
+      {{ end }}
+
+      {{ if .CommonAnnotations.runbook_url }}
+      🔗 Runbook: {{ .CommonAnnotations.runbook_url }}
+      {{ end }}
+
+    # Alert grouping settings
+    settings.groupBy:
+      - alertname
+      - job
+    settings.groupWait: 30s
+    settings.groupInterval: 5m
+    settings.repeatInterval: 4h

@@ -1,0 +1,17 @@
+{
+  "groups": [
+    {
+      "name": "System Alerts",
+      "rules": [
+        {
+          "name": "High CPU Usage",
+          "query": "avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) > 0.8",
+          "duration": "5m",
+          "labels": {
+            "severity": "warning"
+          }
+        }
+      ]
+    }
+  ]
+}
