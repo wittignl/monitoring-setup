@@ -1,0 +1,598 @@
+{
+    "apiVersion": 1,
+    "groups": [
+        {
+            "orgId": 1,
+            "name": "DISK web alert",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "disk-web-alert",
+                    "title": "DISK web",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 300, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "1 - node_filesystem_free_bytes{job='node-exporter',fstype!='rootfs',mountpoint=\"/\"} / node_filesystem_size_bytes{job='node-exporter',mountpoint=\"/\"}",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [0.8, 0], "type": "gt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "hide": false,
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 20,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "20" },
+                    "labels": { "alertname": "DISK web ALERT" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "LOAD web alert",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "load-web-alert",
+                    "title": "LOAD web",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 300, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "node_load1",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [2, 0], "type": "gt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    },
+                                    {
+                                        "evaluator": { "params": [0, 0], "type": "no_value" },
+                                        "operator": { "type": "or" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 12,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "12" },
+                    "labels": { "alertname": "LOAD web ALERT" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "MEMORY web alert",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "memory-web-alert",
+                    "title": "MEMORY web",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 600, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "(node_memory_MemTotal_bytes{job='node-exporter'} - node_memory_MemFree_bytes{job='node-exporter'} - node_memory_Buffers_bytes{job='node-exporter'} - node_memory_Cached_bytes{job='node-exporter'}) / node_memory_MemTotal_bytes{job='node-exporter'}",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [0.95, 0], "type": "gt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 16,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "16" },
+                    "labels": { "alertname": "MEMORY web alert" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "MySQL slow queries",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "mysql-slow-queries-alert",
+                    "title": "MySQL Slow queries",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 60, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "rate(mysql_global_status_slow_queries{job=\"mysql-exporter\"}[1m])",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [0.2, 0], "type": "gt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "hide": false,
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 31,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "31" },
+                    "labels": { "alertname": "MySQL slow queries ALERT" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "PROCESS web alert",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "process-web-alert",
+                    "title": "PROCESS web1",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 60, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "sum(pm2_up{job=\"pm2-exporter\",name!~\"stg-(.*)|pm2_(.*)\"}) by (name)",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 600, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [1, 0], "type": "lt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 28,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "28" },
+                    "labels": { "alertname": "PROCESS web ALERT" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "SSL Certificate",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "ssl-certificate-alert",
+                    "title": "SSL Certificate",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 600, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "(probe_ssl_earliest_cert_expiry - time()) / 86400",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 600, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [7, 0], "type": "lt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "1m",
+                    "annotations": {},
+                    "labels": {},
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "UP MySQL ALERT",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "up_mysql_alert",
+                    "title": "UP MySQL",
+                    "condition": "C",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 60, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "mysql_up{job=\"mysql-exporter\"}",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 300, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                                "editorMode": "code",
+                                "expr": "mysql_up{job=\"mysql-exporter\"}",
+                                "hide": false,
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "B"
+                            }
+                        },
+                        {
+                            "refId": "C",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [1, 0], "type": "lt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "avg" },
+                                        "type": "query"
+                                    },
+                                    {
+                                        "evaluator": { "params": [0, 0], "type": "no_value" },
+                                        "operator": { "type": "or" },
+                                        "query": { "params": ["B"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "hide": false,
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "C",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": {},
+                    "labels": { "alertname": "UP MySQL alert" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "UP web ALERT",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "up-web-alert",
+                    "title": "UP web",
+                    "condition": "C",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 60, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "up{job=\"node-exporter\"}",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 300, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                                "editorMode": "code",
+                                "expr": "up{job=\"node-exporter\"}",
+                                "hide": false,
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "B"
+                            }
+                        },
+                        {
+                            "refId": "C",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [1, 0], "type": "lt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    },
+                                    {
+                                        "evaluator": { "params": [0, 0], "type": "no_value" },
+                                        "operator": { "type": "or" },
+                                        "query": { "params": ["B"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "hide": false,
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "C",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "dashboard-alerts",
+                    "panelId": 8,
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": { "__dashboardUid__": "dashboard-alerts", "__panelId__": "8" },
+                    "labels": { "alertname": "UP web alert" },
+                    "isPaused": false
+                }
+            ]
+        },
+        {
+            "orgId": 1,
+            "name": "Duplicati Backup Failed",
+            "folder": "General Alerting",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "duplicati-alert",
+                    "title": "Duplicati Backup Failed",
+                    "condition": "B",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": { "from": 600, "to": 0 },
+                            "datasourceUid": "prometheus",
+                            "model": {
+                                "editorMode": "code",
+                                "expr": "duplicati_backup_status",
+                                "instant": true,
+                                "intervalMs": 1000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "B",
+                            "relativeTimeRange": { "from": 0, "to": 0 },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": { "params": [1, 0], "type": "lt" },
+                                        "operator": { "type": "and" },
+                                        "query": { "params": ["A"] },
+                                        "reducer": { "params": [], "type": "last" },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": { "name": "Expression", "type": "__expr__", "uid": "__expr__" },
+                                "expression": "",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "B",
+                                "type": "classic_conditions"
+                            }
+                        }
+                    ],
+                    "noDataState": "NoData",
+                    "execErrState": "Error",
+                    "for": "5m",
+                    "annotations": {},
+                    "labels": { "alertname": "Duplicati backup failed" },
+                    "isPaused": false
+                }
+            ]
+        }
+    ]
+}

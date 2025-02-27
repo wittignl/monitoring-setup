@@ -1,0 +1,19 @@
+{
+    "apiVersion": 1,
+    "contactPoints": [
+        {
+            "orgId": 1,
+            "name": "Mattermost",
+            "receivers": [
+                {
+                    "uid": "mattermost-contact-point",
+                    "type": "slack",
+                    "disableResolveMessage": false,
+                    "settings": {
+                        "url": "${MATTERMOST_WEBHOOK_URL}"
+                    }
+                }
+            ]
+        }
+    ]
+}
