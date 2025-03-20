@@ -26,6 +26,7 @@
 - [x] Enhanced MySQL exporter password handling with prompting and random generation
 - [x] Added interactive prompting for PM2 user selection
 - [x] Fixed unterminated string error in Prometheus scrape config function
+- [x] Enhanced monitoring configuration for new server (192.168.42.4)
 
 ### Planned
 - [ ] Support for additional exporters

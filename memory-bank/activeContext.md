@@ -52,3 +52,15 @@
 - Fixed unterminated string error in the `add_scrape_config_to_prometheus()` function
 - Corrected the string quoting in the awk command to properly handle multi-line strings
 - Fixed both instances of the issue (in the main block and END block)
+
+### Completed Task: Enhance Monitoring for New Server (192.168.42.4)
+- Analyzed integration of Grafana monitoring components with newly added PM2 and Node Exporter metrics from IP 192.168.42.4
+- Evaluated existing alert rules and dashboards for proper utilization of metrics from the new server
+- Implemented dashboard modifications to distinguish between servers:
+  - Updated panel titles and legends to include instance information
+  - Added PM2 application-specific panels for memory usage and restarts
+  - Modified template variables to properly capture instance information
+- Enhanced alert rules to include instance information:
+  - Added instance labels and annotations to all alert rules
+  - Created a new PM2-specific alert rule for memory usage
+  - Improved alert notifications with instance-specific context

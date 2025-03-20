@@ -111,6 +111,17 @@ This document tracks key architectural and design decisions made during the deve
   - Positive: Resolved error when adding scrape configs to Prometheus
   - Positive: Improved reliability of the configuration process
   - Positive: Better handling of multi-line strings in awk commands
+
+### AD-011: Enhanced Multi-Server Monitoring
+- **Date**: 2025-03-20
+- **Decision**: Enhance monitoring configuration to better support multiple servers
+- **Context**: Need to properly integrate and distinguish metrics from a new server (192.168.42.4)
+- **Consequences**:
+  - Positive: Improved visibility of metrics from different servers
+  - Positive: Better context in alert notifications with instance information
+  - Positive: Enhanced PM2 application monitoring with dedicated panels and alerts
+  - Positive: More flexible dashboard template variables for server selection
+  - Negative: Slightly increased complexity in alert rules and dashboard configurations
 =======
 
 ## Future Decisions to Consider
