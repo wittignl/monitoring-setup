@@ -56,6 +56,31 @@ configure_grafana() {
         sed -i "s/^;http_port = 3000/http_port = ${GRAFANA_PORT}/" "${GRAFANA_CONFIG_DIR}/grafana.ini"
     fi
 
+    # Set external URL if GRAFANA_EXTERNAL_URL is provided
+    if [[ -n "${GRAFANA_EXTERNAL_URL:-}" ]]; then
+        log_info "Setting Grafana root_url to ${GRAFANA_EXTERNAL_URL}"
+        # Ensure the [server] section exists - add if not found
+        if ! grep -q "^\\[server\\]" "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
+            log_info "Adding [server] section to grafana.ini"
+            echo -e "\n[server]" >> "${GRAFANA_CONFIG_DIR}/grafana.ini"
+        fi
+        # Check if root_url is commented out
+        if grep -q "^;root_url = " "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
+            # Uncomment and set the value, ensuring no duplicate slashes if GRAFANA_EXTERNAL_URL ends with /
+            sed -i "s|^;root_url = .*|root_url = ${GRAFANA_EXTERNAL_URL%/}|" "${GRAFANA_CONFIG_DIR}/grafana.ini"
+        # Check if root_url is already set (uncommented)
+        elif grep -q "^root_url = " "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
+             # Update the existing value
+             sed -i "s|^root_url = .*|root_url = ${GRAFANA_EXTERNAL_URL%/}|" "${GRAFANA_CONFIG_DIR}/grafana.ini"
+        else
+            # Add root_url under the [server] section if it doesn't exist at all
+             log_info "Adding root_url to [server] section in grafana.ini"
+             sed -i "/^\\[server\\]/a root_url = ${GRAFANA_EXTERNAL_URL%/}" "${GRAFANA_CONFIG_DIR}/grafana.ini"
+        fi
+    else
+        log_warning "GRAFANA_EXTERNAL_URL environment variable not set. Alert links might use localhost."
+    fi
+
     # Create provisioning directories if they don't exist
     create_directory "${GRAFANA_PROVISIONING_DIR}/datasources" "grafana" "grafana" "0750"
     create_directory "${GRAFANA_PROVISIONING_DIR}/dashboards" "grafana" "grafana" "0750"

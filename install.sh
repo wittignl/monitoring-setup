@@ -16,6 +16,7 @@
 #   --skip-provisioning     Skip Grafana provisioning
 #   --version VERSION       Specify version for components
 #   --pm2-user USER         Specify PM2 user (defaults to current user)
+#   --grafana-url URL       Specify the external URL for Grafana (e.g., https://grafana.example.com)
 #
 # Example: ./install.sh --all
 #          ./install.sh --prometheus --grafana --node-exporter
@@ -98,6 +99,7 @@ INSTALL_PM2_EXPORTER=false
 SKIP_PROVISIONING=false
 COMPONENT_VERSION=""
 PM2_USER_VALUE=""
+GRAFANA_URL_ARG=""
 
 # Display help message
 display_help() {
@@ -118,10 +120,13 @@ Options:
   --skip-provisioning     Skip Grafana provisioning
   --version VERSION       Specify version for components
   --pm2-user USER         Specify PM2 user (defaults to current user)
+  --grafana-url URL       Specify the external URL for Grafana (e.g., https://grafana.example.com)
+                          Alternatively, set the GRAFANA_EXTERNAL_URL environment variable.
 
 Example: ./install.sh --all
          ./install.sh --prometheus --grafana --node-exporter
          ./install.sh --pm2-exporter --pm2-user nodejs
+         ./install.sh --grafana --grafana-url https://mygrafana.co
 EOF
 }
 
@@ -178,6 +183,10 @@ parse_arguments() {
                 PM2_USER_VALUE="$2"
                 shift 2
                 ;;
+            --grafana-url)
+                GRAFANA_URL_ARG="$2"
+                shift 2
+                ;;
             *)
                 log_error "Unknown option: $1"
                 display_help
@@ -211,6 +220,15 @@ install_components() {
         else
             install_prometheus
         fi
+    fi
+
+    # Install Grafana
+    if [[ -n "${GRAFANA_URL_ARG}" ]]; then
+        log_info "Exporting GRAFANA_EXTERNAL_URL from command line argument"
+        export GRAFANA_EXTERNAL_URL="${GRAFANA_URL_ARG}"
+    elif [[ -n "${GRAFANA_EXTERNAL_URL:-}" ]]; then
+        log_info "Using existing GRAFANA_EXTERNAL_URL environment variable"
+        # No need to export again if already set in environment
     fi
 
     # Install Grafana
@@ -271,6 +289,11 @@ display_status() {
         check_grafana
         log_info "Grafana URL: http://localhost:${GRAFANA_PORT}"
         log_info "Default Grafana credentials: admin/admin"
+        if [[ -n "${GRAFANA_EXTERNAL_URL:-}" ]]; then
+            log_info "Grafana External URL: ${GRAFANA_EXTERNAL_URL}"
+        else
+            log_warning "Grafana External URL not set. Alert links may use localhost."
+        fi
     fi
 
     # Check Node Exporter status

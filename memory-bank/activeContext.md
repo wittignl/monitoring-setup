@@ -64,3 +64,17 @@
   - Added instance labels and annotations to all alert rules
   - Created a new PM2-specific alert rule for memory usage
   - Improved alert notifications with instance-specific context
+
+### Completed Task: Optimize Monitoring Provisioning (Dashboards & Alerting)
+- Analyzed existing Grafana dashboards and alerting rules for flexibility, aesthetics, and notification clarity.
+- Implemented dashboard improvements:
+  - Added `$job` and `$instance` variables to `dashboard-alerts.json`, `dashboard-mysql.json`, `dashboard-node.json`, `dashboard-duplicati.json`.
+  - Replaced hardcoded `job` and `instance` values in queries with variables.
+  - Corrected `repeat` variable mismatch in `dashboard-node.json` (`node` -> `instance`).
+  - Enabled legends and added missing units for better clarity.
+- Implemented alerting improvements:
+  - Added `severity` label to all alert rules.
+  - Added placeholder `runbook_url` annotation to all alert rules (subsequently removed per user request).
+  - Added custom notification template to Mattermost contact point (`contact-points.json`) for improved formatting and context (runbook link logic subsequently removed per user request).
+- Implemented `localhost` URL fix:
+  - Modified `modules/grafana.sh` to configure `root_url` in `grafana.ini` based on `GRAFANA_EXTERNAL_URL` environment variable.

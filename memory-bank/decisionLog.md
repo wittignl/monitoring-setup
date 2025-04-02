@@ -122,7 +122,21 @@ This document tracks key architectural and design decisions made during the deve
   - Positive: Enhanced PM2 application monitoring with dedicated panels and alerts
   - Positive: More flexible dashboard template variables for server selection
   - Negative: Slightly increased complexity in alert rules and dashboard configurations
-=======
+
+### AD-012: Optimize Grafana Provisioning (Flexibility, Aesthetics, Notifications)
+- **Date**: 2025-04-02
+- **Decision**: Refactor Grafana dashboards, alert rules, and notification templates to improve flexibility, aesthetics, and clarity based on user feedback. Configure Grafana's external URL.
+- **Context**: Existing dashboards were inflexible (hardcoded values), visually unappealing. Alert notifications were non-informative, ugly, and contained incorrect `localhost` URLs.
+- **Consequences**:
+  - Positive: Dashboards now use variables (`$job`, `$instance`) for filtering, improving flexibility.
+  - Positive: Dashboard queries updated to use variables, removing hardcoding.
+  - Positive: Dashboard aesthetics improved (legends enabled, units added).
+  - Positive: Alert rules now include `severity` labels and `runbook_url` annotations (runbook_url later removed per user request) for better context.
+  - Positive: Custom Mattermost notification template provides clearer, more informative alerts (runbook link logic later removed per user request).
+  - Positive: Grafana `root_url` configuration added to `grafana.sh` (using `GRAFANA_EXTERNAL_URL`), fixing incorrect links in notifications.
+  - Positive: `install.sh` updated to support `--grafana-url` argument.
+  - Negative: Increased dashboard complexity slightly due to variables.
+  - Negative: Requires `GRAFANA_EXTERNAL_URL` to be set correctly during installation for alert links to work properly.
 
 ## Future Decisions to Consider
 

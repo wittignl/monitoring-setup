@@ -113,7 +113,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "round((probe_ssl_earliest_cert_expiry - time()) / 86400)",
+          "expr": "round((probe_ssl_earliest_cert_expiry{instance=~\"$instance\"} - time()) / 86400)",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -218,7 +218,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -234,7 +234,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "up{job=\"node-exporter\"}",
+          "expr": "up{job=~\"$job\", instance=~\"$instance\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -297,7 +297,8 @@
                 "value": 3
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -313,7 +314,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -329,7 +330,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "node_load1",
+          "expr": "node_load1{job=~\"$job\", instance=~\"$instance\"}",
           "legendFormat": "{{instance}} - load",
           "range": true,
           "refId": "A"
@@ -392,7 +393,8 @@
                 "value": 0.8
               }
             ]
-          }
+          },
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -408,7 +410,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -424,7 +426,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "(node_memory_MemTotal_bytes{job='node-exporter'} - node_memory_MemFree_bytes{job='node-exporter'} - node_memory_Buffers_bytes{job='node-exporter'} - node_memory_Cached_bytes{job='node-exporter'}) / node_memory_MemTotal_bytes{job='node-exporter'}",
+          "expr": "(node_memory_MemTotal_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_MemFree_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_Buffers_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_Cached_bytes{job=~\"$job\", instance=~\"$instance\"}) / node_memory_MemTotal_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "legendFormat": "{{instance}} - memory usage",
           "range": true,
           "refId": "A"
@@ -487,7 +489,8 @@
                 "value": 0.8
               }
             ]
-          }
+          },
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -503,7 +506,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -519,7 +522,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "1 - node_filesystem_free_bytes{job='node-exporter',fstype!='rootfs',mountpoint=\"/\"} / node_filesystem_size_bytes{job='node-exporter',mountpoint=\"/\"}",
+          "expr": "1 - node_filesystem_free_bytes{job=~\"$job\", instance=~\"$instance\", fstype!='rootfs',mountpoint=\"/\"} / node_filesystem_size_bytes{job=~\"$job\", instance=~\"$instance\", mountpoint=\"/\"}",
           "legendFormat": "{{instance}} - disk usage",
           "range": true,
           "refId": "A"
@@ -626,7 +629,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -642,7 +645,7 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "pm2_up{job=\"pm2-exporter\",name!~\"stg-(.*)|pm2_(.*)\"}",
+          "expr": "pm2_up{job=~\"$job\", instance=~\"$instance\", name!~\"stg-(.*)|pm2_(.*)\"}",
           "instant": false,
           "legendFormat": "{{instance}} - {{name}}",
           "range": true,
@@ -753,7 +756,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -769,7 +772,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "mysql_global_status_threads_connected{job=\"mysql-exporter\"} / mysql_global_status_max_used_connections{job=\"mysql-exporter\"}",
+          "expr": "mysql_global_status_threads_connected{job=~\"$job\", instance=~\"$instance\"} / mysql_global_status_max_used_connections{job=~\"$job\", instance=~\"$instance\"}",
           "legendFormat": "Utilization",
           "range": true,
           "refId": "A"
@@ -835,7 +838,8 @@
                 "value": 0.2
               }
             ]
-          }
+          },
+          "unit": "Qps"
         },
         "overrides": []
       },
@@ -851,7 +855,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -867,7 +871,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(mysql_global_status_slow_queries{job=\"mysql-exporter\"}[1m])",
+          "expr": "rate(mysql_global_status_slow_queries{job=~\"$job\", instance=~\"$instance\"}[1m])",
           "legendFormat": "Utilization",
           "range": true,
           "refId": "A"
@@ -882,7 +886,52 @@
   "schemaVersion": 40,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up, job)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Job",
+        "multi": true,
+        "name": "job",
+        "options": [],
+        "query": {
+          "query": "label_values(up, job)",
+          "refId": "StandardVariableQuery_Job"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=~\"$job\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(up{job=~\"$job\"}, instance)",
+          "refId": "StandardVariableQuery_Instance"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-6h",

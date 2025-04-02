@@ -64,7 +64,8 @@
           },
           "labels": {
             "alertname": "DISK web ALERT",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }
@@ -139,7 +140,8 @@
           },
           "labels": {
             "alertname": "LOAD web ALERT",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }
@@ -207,7 +209,8 @@
           },
           "labels": {
             "alertname": "MEMORY web alert",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }
@@ -276,7 +279,8 @@
           },
           "labels": {
             "alertname": "MySQL slow queries ALERT",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }
@@ -345,7 +349,8 @@
           "labels": {
             "alertname": "PROCESS web ALERT",
             "instance": "{{$labels.instance}}",
-            "process": "{{$labels.name}}"
+            "process": "{{$labels.name}}",
+            "severity": "critical"
           },
           "isPaused": false
         }
@@ -409,7 +414,8 @@
           },
           "labels": {
             "alertname": "SSL Certificate Expiry",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }
@@ -498,7 +504,8 @@
           },
           "labels": {
             "alertname": "UP MySQL alert",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "critical"
           },
           "isPaused": false
         }
@@ -591,7 +598,8 @@
           },
           "labels": {
             "alertname": "UP web alert",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "critical"
           },
           "isPaused": false
         }
@@ -655,7 +663,8 @@
           },
           "labels": {
             "alertname": "Duplicati backup failed",
-            "instance": "{{$labels.instance}}"
+            "instance": "{{$labels.instance}}",
+            "severity": "warning"
           },
           "isPaused": false
         }

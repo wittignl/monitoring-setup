@@ -27,7 +27,7 @@
 - [x] Added interactive prompting for PM2 user selection
 - [x] Fixed unterminated string error in Prometheus scrape config function
 - [x] Enhanced monitoring configuration for new server (192.168.42.4)
-
+- [x] Optimized Grafana provisioning (dashboards variables/aesthetics, alert context/templates, root_url fix)
 ### Planned
 - [ ] Support for additional exporters
 - [ ] High availability configuration options

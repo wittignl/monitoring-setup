@@ -123,11 +123,11 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg without (cpu)(irate(node_cpu_seconds_total{job=\"node-exporter\",mode!=\"idle\"}[5m]))",
+          "expr": "avg without (cpu)(irate(node_cpu_seconds_total{job=~\"$job\", instance=~\"$instance\", mode!=\"idle\"}[5m]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{mode}}",
+          "legendFormat": "{{instance}} - {{mode}}",
           "metric": "node_cpu",
           "range": true,
           "refId": "A",
@@ -218,16 +218,16 @@
         }
       },
       "pluginVersion": "10.2.0",
-      "repeat": "node",
+      "repeat": "instance",
       "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "node_load1",
+          "expr": "node_load1{instance=\"$instance\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "load",
+          "legendFormat": "{{instance}} - load",
           "metric": "",
           "range": true,
           "refId": "A",
@@ -326,11 +326,11 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "1 - node_filesystem_free_bytes{job='node-exporter',fstype!='rootfs',mountpoint!~'/(run|var).*',mountpoint!=''} / node_filesystem_size_bytes{job='node-exporter'}",
+          "expr": "1 - node_filesystem_free_bytes{job=~\"$job\", instance=~\"$instance\", fstype!='rootfs',mountpoint!~'/(run|var).*',mountpoint!=''} / node_filesystem_size_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{mountpoint}}",
+          "legendFormat": "{{instance}} - {{mountpoint}}",
           "range": true,
           "refId": "A",
           "step": 2
@@ -426,41 +426,41 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "node_memory_MemTotal_bytes{job='node-exporter'} - node_memory_MemFree_bytes{job='node-exporter'} - node_memory_Buffers_bytes{job='node-exporter'} - node_memory_Cached_bytes{job='node-exporter'}",
+          "expr": "node_memory_MemTotal_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_MemFree_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_Buffers_bytes{job=~\"$job\", instance=~\"$instance\"} - node_memory_Cached_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Used",
+          "legendFormat": "{{instance}} - Used",
           "range": true,
           "refId": "A",
           "step": 2
         },
         {
           "editorMode": "code",
-          "expr": "node_memory_Buffers_bytes{job='node-exporter'}",
+          "expr": "node_memory_Buffers_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Buffers",
+          "legendFormat": "{{instance}} - Buffers",
           "range": true,
           "refId": "B",
           "step": 2
         },
         {
           "editorMode": "code",
-          "expr": "node_memory_Cached_bytes{job='node-exporter'}",
+          "expr": "node_memory_Cached_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "Cached",
+          "legendFormat": "{{instance}} - Cached",
           "range": true,
           "refId": "D",
           "step": 2
         },
         {
           "editorMode": "code",
-          "expr": "node_memory_MemFree_bytes{job='node-exporter'}",
+          "expr": "node_memory_MemFree_bytes{job=~\"$job\", instance=~\"$instance\"}",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 2,
-          "legendFormat": "Free",
+          "legendFormat": "{{instance}} - Free",
           "range": true,
           "refId": "C",
           "step": 2
@@ -563,16 +563,16 @@
         }
       },
       "pluginVersion": "10.2.0",
-      "repeat": "node",
+      "repeat": "instance",
       "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "irate(node_disk_reads_completed_total[5m]) or irate(node_disk_reads_completed[5m])",
+          "expr": "(irate(node_disk_reads_completed_total{instance=\"$instance\"}[5m]) or irate(node_disk_reads_completed{instance=\"$instance\"}[5m]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 4,
-          "legendFormat": "{{device}}_read",
+          "legendFormat": "{{instance}} - {{device}}_read",
           "metric": "",
           "range": true,
           "refId": "A",
@@ -581,10 +581,10 @@
         },
         {
           "editorMode": "code",
-          "expr": "irate(node_disk_writes_completed_total[5m]) or irate(node_disk_writes_completed[5m])",
+          "expr": "(irate(node_disk_writes_completed_total{instance=\"$instance\"}[5m]) or irate(node_disk_writes_completed{instance=\"$instance\"}[5m]))",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{device}}_write",
+          "legendFormat": "{{instance}} - {{device}}_write",
           "metric": "",
           "range": true,
           "refId": "B",
@@ -675,15 +675,15 @@
         }
       },
       "pluginVersion": "10.2.0",
-      "repeat": "node",
+      "repeat": "instance",
       "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "node_netstat_Tcp_CurrEstab",
+          "expr": "node_netstat_Tcp_CurrEstab{instance=\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "established",
+          "legendFormat": "{{instance}} - established",
           "range": true,
           "refId": "A",
           "step": 1200,
@@ -786,16 +786,16 @@
         }
       },
       "pluginVersion": "10.2.0",
-      "repeat": "node",
+      "repeat": "instance",
       "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "irate(node_network_receive_bytes_total[5m])*8 or irate(node_network_receive_bytes[5m])*8",
+          "expr": "(irate(node_network_receive_bytes_total{instance=\"$instance\"}[5m]) or irate(node_network_receive_bytes{instance=\"$instance\"}[5m])) * 8",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{device}}_in",
+          "legendFormat": "{{instance}} - {{device}}_in",
           "metric": "",
           "range": true,
           "refId": "A",
@@ -804,11 +804,11 @@
         },
         {
           "editorMode": "code",
-          "expr": "irate(node_network_transmit_bytes_total[5m])*8 or irate(node_network_transmit_bytes[5m])*8",
+          "expr": "(irate(node_network_transmit_bytes_total{instance=\"$instance\"}[5m]) or irate(node_network_transmit_bytes{instance=\"$instance\"}[5m])) * 8",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{device}}_out",
+          "legendFormat": "{{instance}} - {{device}}_out",
           "range": true,
           "refId": "B",
           "step": 1200
@@ -825,30 +825,52 @@
   "templating": {
     "list": [
       {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=~\"node.*\"}, job)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Job",
+        "multi": true,
+        "name": "job",
+        "options": [],
+        "query": {
+          "query": "label_values(up{job=~\"node.*\"}, job)",
+          "refId": "StandardVariableQuery_Job_Node"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
         "current": {
           "selected": false,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "",
+        "definition": "label_values(up{job=~\"$job\"}, instance)",
+        "hide": 0,
         "includeAll": true,
         "label": "Instance",
+        "multi": true,
         "name": "instance",
         "options": [],
         "query": {
-          "query": "up{job=\"node-exporter\"}",
-          "refId": "Prometheus-service-Variable-Query"
+          "query": "label_values(up{job=~\"$job\"}, instance)",
+          "refId": "StandardVariableQuery_Instance_Node"
         },
         "refresh": 1,
-        "regex": ".*instance=\"(.*?)\".*",
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
         "type": "query"
       }
     ]
