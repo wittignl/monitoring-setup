@@ -3,17 +3,14 @@
 # Common functions for monitoring installation
 #
 
-# Set strict mode
 set -euo pipefail
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# System architecture detection
 detect_architecture() {
     local arch
     arch=$(uname -m)
@@ -42,7 +39,6 @@ detect_architecture() {
     export ARCH
 }
 
-# Logging functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -59,33 +55,25 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
-# Error handling
 handle_error() {
     log_error "$1"
     exit 1
 }
 
-# Trap for cleanup on exit
 cleanup() {
-    # Remove temporary files and directories
     if [[ -d "${TEMP_DIR:-}" ]]; then
         rm -rf "${TEMP_DIR}"
     fi
-
-    # Additional cleanup as needed
     log_info "Cleanup completed"
 }
 
-# Set trap for cleanup
 trap cleanup EXIT
 
-# Create temporary directory
 create_temp_dir() {
     TEMP_DIR=$(mktemp -d)
     log_info "Created temporary directory: ${TEMP_DIR}"
 }
 
-# System checks
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         handle_error "This script must be run as root"
@@ -97,18 +85,15 @@ check_ubuntu() {
         handle_error "This script is designed for Ubuntu systems only"
     fi
 
-    # Get Ubuntu version
     UBUNTU_VERSION=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
     log_info "Detected Ubuntu version: ${UBUNTU_VERSION}"
 
-    # Check if version is supported
     if [[ "${UBUNTU_VERSION}" != "20.04" && "${UBUNTU_VERSION}" != "22.04" ]]; then
         log_warning "This script is tested on Ubuntu 20.04 and 22.04. Your version may not be fully supported."
     fi
 }
 
 check_disk_space() {
-    # Check if there's at least 1GB of free space
     FREE_SPACE=$(df -m / | awk 'NR==2 {print $4}')
     if [[ ${FREE_SPACE} -lt 1024 ]]; then
         handle_error "Not enough disk space. At least 1GB of free space is required."
@@ -132,7 +117,6 @@ check_system() {
     log_success "All system checks passed"
 }
 
-# Package management wrappers
 update_package_lists() {
     log_info "Updating package lists..."
     apt-get update -qq || handle_error "Failed to update package lists"
@@ -152,11 +136,9 @@ install_packages() {
     log_success "Packages installed: $*"
 }
 
-# User creation utilities
 create_user() {
     local username=$1
 
-    # Check if user already exists
     if id "${username}" &>/dev/null; then
         log_info "User ${username} already exists"
         return 0
@@ -167,7 +149,6 @@ create_user() {
     log_success "User created: ${username}"
 }
 
-# Directory management
 create_directory() {
     local dir=$1
     local owner=${2:-root}
@@ -181,7 +162,6 @@ create_directory() {
     log_success "Directory created: ${dir}"
 }
 
-# Service management
 create_systemd_service() {
     local service_name=$1
     local service_content=$2
@@ -228,7 +208,6 @@ check_service_status() {
 
     log_info "Checking service status: ${service_name}"
 
-    # Check if service is active using systemctl is-active
     local status
     status=$(systemctl is-active "${service_name}" 2>/dev/null)
 
@@ -239,7 +218,6 @@ check_service_status() {
     fi
 }
 
-# Download utilities
 download_file() {
     local url=$1
     local output_file=$2
@@ -255,10 +233,8 @@ extract_archive() {
 
     log_info "Extracting archive: ${archive_file}"
 
-    # Create extraction directory if it doesn't exist
     mkdir -p "${extract_dir}"
 
-    # Extract based on file extension
     if [[ "${archive_file}" == *.tar.gz || "${archive_file}" == *.tgz ]]; then
         tar -xzf "${archive_file}" -C "${extract_dir}" || handle_error "Failed to extract archive: ${archive_file}"
     elif [[ "${archive_file}" == *.tar.bz2 ]]; then
@@ -272,12 +248,10 @@ extract_archive() {
     log_success "Archive extracted: ${archive_file}"
 }
 
-# Configuration file utilities
 backup_config_file() {
     local config_file=$1
     local backup_file="${config_file}.bak.$(date +%Y%m%d%H%M%S)"
 
-    # Only backup if file exists
     if [[ -f "${config_file}" ]]; then
         log_info "Backing up config file: ${config_file}"
         cp "${config_file}" "${backup_file}" || handle_error "Failed to backup config file: ${config_file}"
@@ -287,50 +261,133 @@ backup_config_file() {
     fi
 }
 
-# YAML manipulation functions
-add_yaml_block() {
-    local file=$1
-    local block=$2
-    local section=$3
 
-    # Backup the file
-    backup_config_file "${file}"
+PROMETHEUS_CONF_DIR="/etc/prometheus"
+PROMETHEUS_SCRAPE_CONF_DIR="${PROMETHEUS_CONF_DIR}/conf.d"
+PROMETHEUS_USER="prometheus"
+PROMETHEUS_GROUP="prometheus"
 
-    # Check if section exists
-    if grep -q "${section}:" "${file}"; then
-        # Add block to existing section
-        # Use a more reliable approach to insert the block after the section
-        awk -v section="${section}:" -v block="${block}" '
-        $0 ~ section {
-            print $0;
-            print block;
-            next;
-        }
-        { print $0 }
-        ' "${file}" > "${file}.tmp" && mv "${file}.tmp" "${file}" || handle_error "Failed to add YAML block to ${file}"
-    else
-        # Add new section with block
-        echo -e "\n${section}:\n${block}" >> "${file}" || handle_error "Failed to add YAML section to ${file}"
+add_scrape_config() {
+    local job_name=$1
+    local target=$2
+    local scrape_interval=${3:-15s}
+    local metrics_path=${4:-/metrics}
+    local scheme=${5:-http}
+    local extra_labels_yaml=${6:-""}
+
+    local config_file="${PROMETHEUS_SCRAPE_CONF_DIR}/${job_name}.yml"
+
+    log_info "Adding Prometheus scrape config file for job '${job_name}': ${config_file}"
+
+    if [[ ! -d "${PROMETHEUS_SCRAPE_CONF_DIR}" ]]; then
+        log_warning "Prometheus scrape config directory ${PROMETHEUS_SCRAPE_CONF_DIR} does not exist. Creating it."
+        create_directory "${PROMETHEUS_SCRAPE_CONF_DIR}" "${PROMETHEUS_USER}" "${PROMETHEUS_GROUP}" "0750"
     fi
 
-    log_success "YAML block added to ${file}"
+    local yaml_content="- targets:
+    - '${target}'
+  labels:
+    job: '${job_name}'"
+
+    if [[ -n "${extra_labels_yaml}" ]]; then
+        yaml_content+="\n${extra_labels_yaml}"
+    fi
+
+
+    echo -e "${yaml_content}" > "${config_file}" || handle_error "Failed to write Prometheus scrape config file: ${config_file}"
+
+    chown "${PROMETHEUS_USER}:${PROMETHEUS_GROUP}" "${config_file}" || handle_error "Failed to set ownership on ${config_file}"
+    chmod 640 "${config_file}" || handle_error "Failed to set permissions on ${config_file}"
+
+    log_success "Prometheus scrape config file created: ${config_file}"
+
+    reload_prometheus_config
 }
 
-# Version comparison utility
+remove_scrape_config() {
+    local job_name=$1
+    local config_file="${PROMETHEUS_SCRAPE_CONF_DIR}/${job_name}.yml"
+
+    log_info "Removing Prometheus scrape config file for job '${job_name}': ${config_file}"
+
+    if [[ -f "${config_file}" ]]; then
+        rm -f "${config_file}" || handle_error "Failed to remove Prometheus scrape config file: ${config_file}"
+        log_success "Prometheus scrape config file removed: ${config_file}"
+        reload_prometheus_config
+    else
+        log_warning "Prometheus scrape config file not found, nothing to remove: ${config_file}"
+    fi
+}
+
+reload_prometheus_config() {
+    if systemctl list-units --full -all | grep -q 'prometheus.service'; then
+        if systemctl is-active --quiet prometheus; then
+            log_info "Reloading Prometheus configuration..."
+            systemctl reload prometheus || handle_error "Failed to reload Prometheus service. Check config with 'promtool check config /etc/prometheus/prometheus.yml' and logs with 'journalctl -u prometheus'."
+            log_success "Prometheus configuration reloaded."
+        else
+            log_warning "Prometheus service is installed but not active. Skipping reload."
+        fi
+    else
+        log_info "Prometheus service not found. Skipping reload."
+    fi
+}
+
 version_gt() {
     test "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" != "$1"
 }
 
-# Check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
+check_dependencies() {
+    log_info "Checking for required dependencies..."
+    local missing_deps=()
+    local base_dependencies=(
+        wget
+        tar
+        unzip
+        systemctl
+        useradd
+        groupadd
+        git
+        awk
+        grep
+        sed
+        mktemp
+        df
+        ping
+    )
+    local dependencies=("${base_dependencies[@]}")
 
-# Initialize the script
+    if [[ "${INSTALL_PM2_EXPORTER:-false}" == "true" && -z "${PM2_USER_ARG:-}" ]]; then
+         log_info "PM2 Exporter selected for global install, checking for npm and pm2..."
+         dependencies+=(npm pm2)
+    elif [[ "${INSTALL_PM2_EXPORTER:-false}" == "true" && -n "${PM2_USER_ARG:-}" ]]; then
+         log_info "PM2 Exporter selected for user '${PM2_USER_ARG}', skipping global npm/pm2 check."
+    fi
+
+
+    for dep in "${dependencies[@]}"; do
+        if ! command_exists "${dep}"; then
+            missing_deps+=("${dep}")
+        fi
+    done
+
+    if [[ ${#missing_deps[@]} -ne 0 ]]; then
+        log_error "Missing required dependencies: ${missing_deps[*]}"
+        handle_error "Please install the missing dependencies and try again."
+    else
+        log_success "All required dependencies are installed."
+    fi
+}
+
+
 init_script() {
     log_info "Initializing installation script"
     create_temp_dir
     check_system
+    check_dependencies
     detect_architecture
     update_package_lists
     log_success "Initialization complete"

@@ -3,93 +3,90 @@
 # Grafana installation functions
 #
 
-# Default values
-GRAFANA_PORT="3000"
+GRAFANA_DEFAULT_PORT="3000"
+GRAFANA_BIND_ADDR="127.0.0.1"
 GRAFANA_CONFIG_DIR="/etc/grafana"
 GRAFANA_PROVISIONING_DIR="${GRAFANA_CONFIG_DIR}/provisioning"
 
-# Install Grafana
 install_grafana() {
     log_info "Installing Grafana"
 
-    # Install dependencies
     install_packages apt-transport-https software-properties-common wget
 
-    # Import GPG key
     log_info "Importing Grafana GPG key"
     mkdir -p /etc/apt/keyrings/
     wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | tee /etc/apt/keyrings/grafana.gpg > /dev/null
 
-    # Add stable release repository
-    log_info "Adding Grafana repository"
-    echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | tee -a /etc/apt/sources.list.d/grafana.list
+    local grafana_repo_file="/etc/apt/sources.list.d/grafana.list"
+    if [[ ! -f "${grafana_repo_file}" ]]; then
+        log_info "Adding Grafana repository"
+        echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | tee "${grafana_repo_file}" > /dev/null
+    else
+        log_info "Grafana repository file already exists, skipping add."
+    fi
 
-    # Update and install
     update_package_lists
     install_package grafana
 
-    # Configure Grafana
+    create_grafana_systemd_override
+
     configure_grafana
 
-    # Start and enable Grafana
     log_info "Starting Grafana service"
     systemctl daemon-reload
     start_service grafana-server
     enable_service grafana-server
 
-    # Check if Grafana is running
     check_service_status grafana-server
 
     log_success "Grafana installed successfully"
 }
 
-# Configure Grafana
+create_grafana_systemd_override() {
+    local override_dir="/etc/systemd/system/grafana-server.service.d"
+    local override_file="${override_dir}/override.conf"
+
+    log_info "Creating Grafana systemd override file: ${override_file}"
+    mkdir -p "${override_dir}"
+
+    if [[ -z "${GRAFANA_ADMIN_USER:-}" ]]; then
+        log_warning "GRAFANA_ADMIN_USER environment variable not set. Using default 'admin'."
+        GRAFANA_ADMIN_USER="admin"
+    fi
+    if [[ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]]; then
+        handle_error "GRAFANA_ADMIN_PASSWORD environment variable is not set. Cannot configure Grafana securely."
+    fi
+     if [[ -z "${GRAFANA_ROOT_URL:-}" ]]; then
+        log_warning "GRAFANA_ROOT_URL environment variable not set. Using default http://${GRAFANA_BIND_ADDR}:${GRAFANA_DEFAULT_PORT}/"
+        GRAFANA_ROOT_URL="http://${GRAFANA_BIND_ADDR}:${GRAFANA_DEFAULT_PORT}/"
+    fi
+
+    cat > "${override_file}" << EOF
+[Service]
+Environment="GF_SERVER_HTTP_ADDR=${GRAFANA_BIND_ADDR}"
+Environment="GF_SERVER_HTTP_PORT=${GRAFANA_DEFAULT_PORT}"
+Environment="GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL%/}"
+Environment="GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}"
+Environment="GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}"
+EOF
+
+    chmod 644 "${override_file}"
+    log_success "Grafana systemd override file created."
+
+    reload_systemd
+}
+
+
 configure_grafana() {
-    log_info "Configuring Grafana"
+    log_info "Ensuring Grafana provisioning directories exist"
 
-    # Backup existing configuration
-    backup_config_file "${GRAFANA_CONFIG_DIR}/grafana.ini"
-
-    # Ensure port is set correctly
-    if grep -q "^;http_port = 3000" "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
-        log_info "Setting Grafana port to ${GRAFANA_PORT}"
-        sed -i "s/^;http_port = 3000/http_port = ${GRAFANA_PORT}/" "${GRAFANA_CONFIG_DIR}/grafana.ini"
-    fi
-
-    # Set external URL if GRAFANA_EXTERNAL_URL is provided
-    if [[ -n "${GRAFANA_EXTERNAL_URL:-}" ]]; then
-        log_info "Setting Grafana root_url to ${GRAFANA_EXTERNAL_URL}"
-        # Ensure the [server] section exists - add if not found
-        if ! grep -q "^\\[server\\]" "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
-            log_info "Adding [server] section to grafana.ini"
-            echo -e "\n[server]" >> "${GRAFANA_CONFIG_DIR}/grafana.ini"
-        fi
-        # Check if root_url is commented out
-        if grep -q "^;root_url = " "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
-            # Uncomment and set the value, ensuring no duplicate slashes if GRAFANA_EXTERNAL_URL ends with /
-            sed -i "s|^;root_url = .*|root_url = ${GRAFANA_EXTERNAL_URL%/}|" "${GRAFANA_CONFIG_DIR}/grafana.ini"
-        # Check if root_url is already set (uncommented)
-        elif grep -q "^root_url = " "${GRAFANA_CONFIG_DIR}/grafana.ini"; then
-             # Update the existing value
-             sed -i "s|^root_url = .*|root_url = ${GRAFANA_EXTERNAL_URL%/}|" "${GRAFANA_CONFIG_DIR}/grafana.ini"
-        else
-            # Add root_url under the [server] section if it doesn't exist at all
-             log_info "Adding root_url to [server] section in grafana.ini"
-             sed -i "/^\\[server\\]/a root_url = ${GRAFANA_EXTERNAL_URL%/}" "${GRAFANA_CONFIG_DIR}/grafana.ini"
-        fi
-    else
-        log_warning "GRAFANA_EXTERNAL_URL environment variable not set. Alert links might use localhost."
-    fi
-
-    # Create provisioning directories if they don't exist
     create_directory "${GRAFANA_PROVISIONING_DIR}/datasources" "grafana" "grafana" "0750"
     create_directory "${GRAFANA_PROVISIONING_DIR}/dashboards" "grafana" "grafana" "0750"
     create_directory "${GRAFANA_PROVISIONING_DIR}/alerting" "grafana" "grafana" "0750"
 
-    log_success "Grafana configured"
+    log_success "Grafana provisioning directories ensured"
 }
 
-# Copy provisioning files from source to destination
 copy_provisioning_files() {
     local source_dir="$1"
     local dest_dir="$2"
@@ -100,19 +97,15 @@ copy_provisioning_files() {
     local success_count=0
     local total_count=0
 
-    # Create destination directory if it doesn't exist
     if [[ ! -d "${dest_dir}" ]]; then
         mkdir -p "${dest_dir}"
         chown "${owner}:${group}" "${dest_dir}"
         chmod 750 "${dest_dir}"
     fi
 
-    # Find and copy files matching the pattern
     if [[ -d "${source_dir}" ]]; then
-        # Get list of files matching pattern
         local files=("${source_dir}"/${file_pattern})
 
-        # Check if files exist
         if [[ -f "${files[0]}" ]]; then
             for file in "${files[@]}"; do
                 local filename=$(basename "${file}")
@@ -140,7 +133,6 @@ copy_provisioning_files() {
     fi
 }
 
-# Process environment variables in files
 process_env_vars() {
     local file="$1"
     local var_name="$2"
@@ -159,7 +151,6 @@ process_env_vars() {
     fi
 }
 
-# Provision Grafana
 provision_grafana() {
     local provisioning_source_dir="$1"
 
@@ -175,80 +166,68 @@ provision_grafana() {
 
     log_info "Provisioning Grafana with files from ${provisioning_source_dir}"
 
-    # Ensure the destination directory exists
     if [[ ! -d "${GRAFANA_PROVISIONING_DIR}" ]]; then
         mkdir -p "${GRAFANA_PROVISIONING_DIR}"
         chown grafana:grafana "${GRAFANA_PROVISIONING_DIR}"
         chmod 750 "${GRAFANA_PROVISIONING_DIR}"
     fi
 
-    # Recursively copy the entire provisioning directory
     log_info "Copying provisioning files to ${GRAFANA_PROVISIONING_DIR}"
     cp -R "${provisioning_source_dir}"/* "${GRAFANA_PROVISIONING_DIR}/"
 
-    # Set proper ownership and permissions
     chown -R grafana:grafana "${GRAFANA_PROVISIONING_DIR}"
     find "${GRAFANA_PROVISIONING_DIR}" -type d -exec chmod 750 {} \;
     find "${GRAFANA_PROVISIONING_DIR}" -type f -exec chmod 640 {} \;
 
-    # Process environment variables in prometheus.yml if needed
     if [[ -f "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml" ]] && [[ -n "${PROMETHEUS_PORT:-}" ]]; then
         log_info "Updating Prometheus port in datasource configuration"
-        sed -i "s|localhost:[0-9]*|localhost:${PROMETHEUS_PORT:-9095}|g" "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml"
+        sed -i "s|localhost:[0-9]*|127.0.0.1:${PROMETHEUS_PORT:-9090}|g" "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml"
     fi
 
-    # Update path in default.yml if needed
     if [[ -f "${GRAFANA_PROVISIONING_DIR}/dashboards/default.yml" ]]; then
         log_info "Updating dashboard provider path"
         sed -i "s|path:.*|path: ${GRAFANA_PROVISIONING_DIR}/dashboards|g" "${GRAFANA_PROVISIONING_DIR}/dashboards/default.yml"
     fi
 
-    # Create dashboards/json directory if it doesn't exist
     create_directory "${GRAFANA_PROVISIONING_DIR}/dashboards" "grafana" "grafana" "0750"
 
-    # Move dashboard JSON files if they exist in the dashboards directory
     if ls "${GRAFANA_PROVISIONING_DIR}/dashboards/dashboard-*.json" &>/dev/null; then
         log_info "Moving dashboard JSON files"
         mv "${GRAFANA_PROVISIONING_DIR}/dashboards/dashboard-*.json" "${GRAFANA_PROVISIONING_DIR}/dashboards/"
     fi
 
-    # Restart Grafana to apply changes
     restart_service grafana-server
 
     log_success "Grafana provisioning completed"
 }
 
-# Check Grafana status
 check_grafana() {
     log_info "Checking Grafana status"
 
-    # Check if Grafana is installed
-    if ! dpkg -l | grep -q grafana; then
-        log_error "Grafana is not installed"
-        return 1
-    fi
-
-    # Check if Grafana service is running
+    # Primary check: Is the service active?
     if ! systemctl is-active --quiet grafana-server; then
-        log_error "Grafana service is not running"
+        # If service isn't active, check if it's installed at all
+        if ! dpkg -l | grep -q grafana; then
+             log_error "Grafana package is not installed"
+        else
+             log_error "Grafana service (grafana-server) is installed but not running"
+        fi
         return 1
     fi
 
-    # Check if Grafana is responding
-    if ! curl -s "http://localhost:${GRAFANA_PORT}/api/health" &>/dev/null; then
-        log_error "Grafana is not responding"
-        return 1
+    # Secondary check: Is the API responding? (Optional, but good sanity check)
+    if ! curl --fail -s "http://${GRAFANA_BIND_ADDR}:${GRAFANA_DEFAULT_PORT}/api/health" &>/dev/null; then
+        log_warning "Grafana service is running, but API endpoint is not responding (check firewall or Grafana logs)"
+        # We don't return 1 here because the service *is* running, which is the main point for the summary.
     fi
 
     log_success "Grafana is installed and running"
     return 0
 }
 
-# Uninstall Grafana
 uninstall_grafana() {
     log_info "Uninstalling Grafana"
 
-    # Stop and disable service
     if systemctl is-active --quiet grafana-server; then
         systemctl stop grafana-server
     fi
@@ -256,19 +235,17 @@ uninstall_grafana() {
         systemctl disable grafana-server
     fi
 
-    # Remove package
     apt-get remove -y grafana
 
-    # Ask if data and configuration should be removed
     read -p "Remove Grafana data and configuration? (y/n): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        # Remove data and configuration
         apt-get purge -y grafana
         rm -rf "${GRAFANA_CONFIG_DIR}"
+        rm -rf /var/lib/grafana
+        rm -f /etc/systemd/system/grafana-server.service.d/override.conf
     fi
 
-    # Remove repository
     rm -f /etc/apt/sources.list.d/grafana.list
     rm -f /etc/apt/keyrings/grafana.gpg
 

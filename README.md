@@ -1,248 +1,203 @@
-# Monitoring Installation Script
+# Monitoring Stack Installation Script
 
-A modular Bash script for installing Grafana and Prometheus on Ubuntu servers.
+A modular Bash script for installing and configuring a monitoring stack (Prometheus, Grafana, various exporters) on Ubuntu servers. This script simplifies the setup of essential monitoring components as systemd services.
 
-## Features
+## Overview
 
-- Modular design with clear separation of components
-- Support for multiple exporters (Node, Blackbox, MySQL, PM2)
-- Grafana provisioning with dashboards, alerts, and notifiers
-- Easy to maintain and extend
-- Follows the KISS principle
+This script automates the installation and configuration of:
+
+- **Prometheus:** Time-series database and monitoring system.
+- **Grafana:** Visualization and analytics platform.
+- **Node Exporter:** Exposes hardware and OS metrics.
+- **Blackbox Exporter:** Enables probing of endpoints over HTTP, HTTPS, DNS, TCP, and ICMP.
+- **MySQL Exporter:** Exposes metrics from a MySQL database server.
+- **PM2 Exporter:** Exposes metrics from applications managed by PM2.
+
+Components are installed as systemd services, typically running under dedicated users and binding to `localhost` by default for security.
 
 ## Prerequisites
 
-- Ubuntu 20.04 or 22.04
-- Root or sudo access
-- Internet connection
-- At least 1GB of free disk space
+- **Operating System:** Ubuntu (tested on 20.04, 22.04).
+- **Access:** Root or `sudo` privileges are required to run the script.
+- **Internet Connection:** Needed to download components and dependencies.
+- **System Dependencies:** The script checks for and requires the following commands/packages. Most common ones are usually present.
+  - `wget`
+  - `tar`
+  - `curl`
+  - `git` (only if cloning manually)
+  - `systemd` (systemctl, journalctl)
+  - `runuser` (usually part of `util-linux`)
+  - `mysql-client` (required _only_ if you need to perform the Manual MySQL Setup for the MySQL Exporter)
+  - Standard utilities like `grep`, `sed`, `awk`, `useradd`, `groupadd`, `chmod`, `chown`, `mktemp`.
+- **Application User for PM2 Exporter:** If installing the PM2 Exporter (`--pm2-exporter`), the user specified via the `--pm2-user=USERNAME` flag **must already exist** on the system.
+- **NVM/Node.js/PM2 for PM2 User:** It is highly recommended that Node Version Manager (NVM), Node.js, and PM2 are pre-installed _for the application user_ specified with `--pm2-user`. While the script attempts to install these using `runuser` if they are missing for that user, pre-configuration ensures a smoother setup.
 
-## Quick Start
+## Installation
 
-### Direct Installation
+1. **Clone the Repository (Optional but Recommended):**
+   ```bash
+   git clone https://github.com/brentdenboer/monitoring-setup.git
+   cd monitoring-setup
+   chmod +x install.sh
+   ```
+2. **Set Required Environment Variables:**
+   - `MYSQL_PASSWORD`: **Required** if installing MySQL Exporter (`--mysql-exporter`). This password must match the one used during the Manual MySQL Setup.
+   - `GRAFANA_ADMIN_PASSWORD`: **Required** if installing Grafana (`--grafana`). Sets the initial password for the Grafana `admin` user.
+   - `GRAFANA_ROOT_URL`: Optional but recommended if installing Grafana. Sets the public-facing URL (e.g., `http://your-domain.com:3000`) used in alert notifications. Defaults to `http://127.0.0.1:3000/`.
+   - `GRAFANA_ADMIN_USER`: Optional. Sets the initial Grafana admin username. Defaults to `admin`.
 
-You can install the monitoring stack directly using curl:
+3. **Run the Script:** Execute the script with `sudo`. Use `-E` if passing environment variables. Select the components to install using flags.
 
-```bash
-curl -s https://raw.githubusercontent.com/brentdenboer/monitoring-setup/main/install.sh | sudo bash -s -- --all
-```
+   ```bash
+   # Example: Install Prometheus, Grafana, Node Exporter, and PM2 Exporter
+   # Assumes 'appuser' exists and has NVM/Node/PM2 installed.
+   export MYSQL_PASSWORD="your_secure_mysql_password" # Needed only if --mysql-exporter is used
+   export GRAFANA_ADMIN_PASSWORD="your_secure_grafana_admin_password"
+   export GRAFANA_ROOT_URL="http://your-monitoring.example.com:3000"
 
-### Manual Installation
+   sudo -E ./install.sh \
+     --prometheus \
+     --grafana \
+     --node-exporter \
+     --pm2-exporter --pm2-user=appuser
+   ```
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/user/repo.git
-cd repo
-```
-
-2. Make the script executable:
-
-```bash
-chmod +x install.sh
-```
-
-3. Run the installation script:
-
-```bash
-sudo ./install.sh --all
-```
-
-## Usage
+### Command-Line Options
 
 ```
 Usage: ./install.sh [options]
 
 Options:
-  --help                  Display this help message
-  --prometheus            Install Prometheus
-  --grafana               Install Grafana
-  --node-exporter         Install Node Exporter
-  --blackbox-exporter     Install Blackbox Exporter
-  --mysql-exporter        Install MySQL Exporter
-  --pm2-exporter          Install PM2 Exporter
-  --all                   Install all components
-  --skip-provisioning     Skip Grafana provisioning
-  --version VERSION       Specify version for components
+  --help                  Display help message
+  --uninstall             Uninstall selected components instead of installing
+
+  Installation/Uninstallation Targets:
+  --prometheus            Select Prometheus
+  --grafana               Select Grafana
+  --node-exporter         Select Node Exporter
+  --blackbox-exporter     Select Blackbox Exporter
+  --mysql-exporter        Select MySQL Exporter
+  --pm2-exporter          Select PM2 Exporter
+  --all                   Select all components (requires all necessary env vars and user setup)
+
+  Installation Options:
+  --skip-provisioning     Skip Grafana provisioning (datasources, dashboards, alerts)
+  --version VERSION       Specify version for components (applied to all selected, use with caution)
+  --pm2-user USERNAME     **Required** when installing/uninstalling PM2 Exporter.
+                          Specifies the existing application user whose PM2 instance will be monitored.
+                          The script will run PM2-related commands as this user via 'runuser'.
+
+  Environment Variables (Required for Installation):
+  MYSQL_PASSWORD          Password for the MySQL Exporter user (must match manual setup).
+  GRAFANA_ADMIN_PASSWORD  Password for the initial Grafana admin user.
+
+  Environment Variables (Optional):
+  GRAFANA_ADMIN_USER      Initial Grafana admin username (default: 'admin').
+  GRAFANA_ROOT_URL        External root URL for Grafana (important for alerts).
 ```
 
-### Examples
+### Manual MySQL Setup (Required for MySQL Exporter)
 
-Install only Prometheus and Grafana:
+The script **does not** create the MySQL user for the exporter. You must create this user manually **before** running the installation with `--mysql-exporter`.
 
-```bash
-sudo ./install.sh --prometheus --grafana
+Connect to your MySQL server as root or another privileged user:
+
+```sql
+CREATE USER 'mysqld_exporter'@'localhost' IDENTIFIED BY 'your_secure_mysql_password' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-Install Node Exporter with a specific version:
+**Important:** Replace `'your_secure_mysql_password'` with the **exact same password** you provide via the `MYSQL_PASSWORD` environment variable.
 
-```bash
-sudo ./install.sh --node-exporter --version 1.7.0
-```
+### PM2 User Setup (Required for PM2 Exporter)
 
-Install all components but skip Grafana provisioning:
-
-```bash
-sudo ./install.sh --all --skip-provisioning
-```
-
-## Components
-
-### Prometheus
-
-- Default port: 9095
-- Configuration directory: `/etc/prometheus`
-- Data directory: `/var/lib/prometheus`
-
-### Grafana
-
-- Default port: 3000
-- Configuration directory: `/etc/grafana`
-- Default credentials: admin/admin
-
-### Node Exporter
-
-- Default port: 9100
-- Metrics: System metrics (CPU, memory, disk, network)
-
-### Blackbox Exporter
-
-- Default port: 9115
-- Metrics: HTTP, HTTPS, TCP, ICMP probes
-
-### MySQL Exporter
-
-- Default port: 9104
-- Metrics: MySQL server metrics
-- Configuration file: `/etc/.mysqld_exporter.cnf`
-
-> **Security Note:** By default, the MySQL Exporter uses a predefined password if `MYSQL_EXPORTER_PASSWORD` is not set. For production environments, it's strongly recommended to set a custom password using the environment variable.
-
-### PM2 Exporter
-
-- Default port: 9116
-- Metrics: PM2 process metrics
-
-## Grafana Provisioning
-
-The script automatically provisions Grafana with:
-
-- Prometheus datasource
-- Node Exporter dashboard
-- MySQL dashboard
-- Alert rules
-- Mattermost notification channel
+- The `--pm2-user=USERNAME` flag is **mandatory** when using `--pm2-exporter`.
+- The specified `USERNAME` **must exist** on the system before running the script.
+- The script uses `runuser -u USERNAME -- <command>` to execute PM2-related actions (like installing the exporter module `pm2-prometheus-exporter`) as the application user.
+- Ensure NVM, Node.js, and PM2 are installed and configured correctly for this user. The script attempts installation if missing, but pre-setup is more reliable.
 
 ## Configuration
 
-### Environment Variables
+- **Service Binding:** By default, all services (Prometheus, Grafana, Exporters) are configured to listen on `127.0.0.1` (localhost). To allow external access, you typically need to modify the service's configuration or systemd service file/override to listen on `0.0.0.0` or a specific IP address, and adjust firewall rules accordingly.
+- **Prometheus:**
+  - Main config: `/etc/prometheus/prometheus.yml`
+  - Target discovery: Uses `file_sd_configs` pointing to files in `/etc/prometheus/targets/`. The script adds `*.yml` files here for installed exporters (e.g., `node_exporter.yml`, `pm2_exporter.yml`).
+- **Grafana:**
+  - Main config: `/etc/grafana/grafana.ini`
+  - Overrides (e.g., admin password, root url): Set via environment variables in the systemd service override file (`/etc/systemd/system/grafana-server.service.d/override.conf`).
+  - Provisioning: Configuration for datasources, dashboards, and alerting is placed in `/etc/grafana/provisioning/` (copied from the `provisioning/` directory of this repository during installation unless `--skip-provisioning` is used).
+- **Exporters:**
+  - **Node Exporter:** Configuration primarily via systemd service arguments (`/etc/systemd/system/node_exporter.service`).
+  - **Blackbox Exporter:** Config file at `/etc/blackbox_exporter/config.yml`.
+  - **MySQL Exporter:** Connection details (DSN) stored in `/etc/.mysqld_exporter.cnf` (using the `MYSQL_PASSWORD` env var).
+  - **PM2 Exporter:** The `pm2-prometheus-exporter` module is installed globally for the `--pm2-user`. Configuration might reside within the user's PM2 environment (e.g., `~USERNAME/.pm2/`). The Prometheus target file is `/etc/prometheus/targets/pm2_exporter.yml`.
 
-You can configure the installation by setting environment variables before running the script:
+## Accessing Services
 
-```bash
-# Set MySQL exporter password (recommended for production)
-export MYSQL_EXPORTER_PASSWORD="your_secure_password"
+Default ports:
 
-# Set Mattermost webhook URL for notifications
-export MATTERMOST_WEBHOOK_URL="https://mattermost.example.com/hooks/your-webhook-id"
+- **Prometheus:** `http://localhost:9090`
+- **Grafana:** `http://localhost:3000`
+- **Node Exporter:** `http://localhost:9100/metrics`
+- **Blackbox Exporter:** `http://localhost:9115`
+- **MySQL Exporter:** `http://localhost:9104/metrics`
+- **PM2 Exporter:** `http://localhost:9209/metrics` (Verify port if customized)
 
-# Run the installation script
-sudo -E ./install.sh --all
-```
-
-> **Note:** The `-E` flag with sudo preserves environment variables when running the script.
-
-If you're using the direct installation method with curl, you can set environment variables inline:
-
-```bash
-MYSQL_EXPORTER_PASSWORD="your_secure_password" curl -s https://raw.githubusercontent.com/brentdenboer/monitoring-setup/main/install.sh | sudo -E bash -s -- --all
-```
-
-#### Available Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MYSQL_EXPORTER_PASSWORD` | Password for MySQL exporter user | `exporter_password` |
-| `MATTERMOST_WEBHOOK_URL` | Webhook URL for Mattermost notifications | None |
-| `PROMETHEUS_PORT` | Port for Prometheus server | `9095` |
-| `GRAFANA_PORT` | Port for Grafana server | `3000` |
-| `NODE_EXPORTER_PORT` | Port for Node Exporter | `9100` |
-| `BLACKBOX_EXPORTER_PORT` | Port for Blackbox Exporter | `9115` |
-| `MYSQL_EXPORTER_PORT` | Port for MySQL Exporter | `9104` |
-| `PM2_EXPORTER_PORT` | Port for PM2 Exporter | `9116` |
-
-### Prometheus Configuration
-
-The Prometheus configuration file is located at `/etc/prometheus/prometheus.yml`. You can modify this file to add additional scrape targets or change the configuration.
-
-### Grafana Configuration
-
-The Grafana configuration file is located at `/etc/grafana/grafana.ini`. You can modify this file to change the Grafana configuration.
-
-## Firewall Configuration
-
-By default, all services bind to localhost. If you want to access them remotely, you need to:
-
-1. Configure the services to bind to a public interface
-2. Configure your firewall to allow access to the ports
-
-Example for UFW:
-
-```bash
-sudo ufw allow 9095/tcp  # Prometheus
-sudo ufw allow 3000/tcp  # Grafana
-```
-
-## Troubleshooting
-
-### Service Status
-
-Check the status of a service:
-
-```bash
-sudo systemctl status prometheus
-sudo systemctl status grafana-server
-sudo systemctl status node_exporter
-```
-
-### Logs
-
-View service logs:
-
-```bash
-sudo journalctl -u prometheus
-sudo journalctl -u grafana-server
-sudo journalctl -u node_exporter
-```
-
-### Common Issues
-
-- **Port conflicts**: If a port is already in use, the service will fail to start. Check the logs for details.
-- **Permission issues**: Ensure the service user has the necessary permissions.
-- **Configuration errors**: Check the configuration files for syntax errors.
+Replace `localhost` with your server's IP address or domain name if you have configured services and firewalls for external access.
 
 ## Uninstallation
 
-The script does not provide an uninstallation option, but you can manually uninstall the components:
+To uninstall components, use the `--uninstall` flag along with the component flags and any required arguments like `--pm2-user`.
 
 ```bash
-# Stop and disable services
-sudo systemctl stop prometheus grafana-server node_exporter blackbox_exporter mysql_exporter
-sudo systemctl disable prometheus grafana-server node_exporter blackbox_exporter mysql_exporter
-
-# Remove packages
-sudo apt-get remove --purge grafana
-
-# Remove binaries and configuration
-sudo rm -rf /etc/prometheus /var/lib/prometheus /usr/local/bin/prometheus /usr/local/bin/promtool
-sudo rm -rf /etc/grafana
-sudo rm -rf /usr/local/bin/node_exporter /usr/local/bin/blackbox_exporter /usr/local/bin/mysqld_exporter
+# Example: Uninstall Grafana and PM2 Exporter for 'appuser'
+sudo ./install.sh --uninstall --grafana --pm2-exporter --pm2-user=appuser
 ```
+
+The uninstallation process attempts to:
+
+- Stop and disable the systemd services.
+- Remove systemd service files.
+- Remove installed binaries and configuration directories (e.g., `/etc/prometheus`, `/etc/grafana`, exporter directories). May prompt for confirmation for data directories.
+- Remove Prometheus target files from `/etc/prometheus/targets/`.
+- Remove dedicated system users and groups created by the script (e.g., `prometheus`, `grafana`, `node_exporter`).
+- For PM2 Exporter, it uses `runuser` to attempt removal of the `pm2-prometheus-exporter` module for the specified `--pm2-user`.
+
+**What is NOT removed:**
+
+- Manually installed dependencies (`mysql-client`, etc.).
+- The application user specified via `--pm2-user`.
+- NVM, Node.js, or PM2 installations within the application user's home directory.
+- The manually created MySQL user (`mysqld_exporter`).
+
+## Troubleshooting
+
+- **Check Service Status:**
+  ```bash
+  sudo systemctl status <service_name>
+  # e.g., prometheus, grafana-server, node_exporter, pm2_exporter@appuser.service
+  ```
+- **Check Service Logs:**
+  ```bash
+  sudo journalctl -u <service_name> -f
+  # For PM2 exporter run as appuser: sudo journalctl -u pm2_exporter@appuser.service -f
+  ```
+- **PM2 Exporter Issues:**
+  - Verify the `--pm2-user` exists and has PM2 running (`runuser -u USERNAME -- pm2 list`).
+  - Check logs for the `pm2-prometheus-exporter` module within the user's PM2 logs (`runuser -u USERNAME -- pm2 logs pm2-prometheus-exporter`).
+- **MySQL Exporter Issues:**
+  - Ensure the `mysqld_exporter` MySQL user exists and the password in `/etc/.mysqld_exporter.cnf` matches the one set during manual creation.
+  - Check MySQL grant privileges.
+- **Configuration Validation:**
+  - Prometheus: `sudo /usr/local/bin/prometheus/promtool check config /etc/prometheus/prometheus.yml`
+- **Firewall:** Ensure ports are open if accessing remotely (`sudo ufw status`).
+- **Permissions:** Check ownership and permissions on configuration files and directories.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions, issues, and feature requests are welcome. Please feel free to submit a Pull Request or open an issue.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.

@@ -3,26 +3,21 @@
 # Blackbox Exporter installation functions
 #
 
-# Default values
 BLACKBOX_EXPORTER_VERSION="0.25.0"
 BLACKBOX_EXPORTER_USER="prometheus"
 BLACKBOX_EXPORTER_GROUP="prometheus"
 BLACKBOX_EXPORTER_PORT="9115"
 BLACKBOX_EXPORTER_CONFIG_DIR="/etc/blackbox_exporter"
 
-# Install Blackbox Exporter
 install_blackbox_exporter() {
     local version=${1:-$BLACKBOX_EXPORTER_VERSION}
 
     log_info "Installing Blackbox Exporter version ${version}"
 
-    # Ensure prometheus user exists
     create_user "${BLACKBOX_EXPORTER_USER}"
 
-    # Create configuration directory
     create_directory "${BLACKBOX_EXPORTER_CONFIG_DIR}" "${BLACKBOX_EXPORTER_USER}" "${BLACKBOX_EXPORTER_GROUP}" "0755"
 
-    # Download and extract Blackbox Exporter
     cd "${TEMP_DIR}"
     local blackbox_exporter_archive="blackbox_exporter-${version}.linux-${ARCH}.tar.gz"
     local blackbox_exporter_url="https://github.com/prometheus/blackbox_exporter/releases/download/v${version}/${blackbox_exporter_archive}"
@@ -30,7 +25,6 @@ install_blackbox_exporter() {
     download_file "${blackbox_exporter_url}" "${blackbox_exporter_archive}"
     extract_archive "${blackbox_exporter_archive}" "${TEMP_DIR}"
 
-    # Move files to the correct locations
     local extracted_dir="blackbox_exporter-${version}.linux-${ARCH}"
     cd "${extracted_dir}"
 
@@ -39,32 +33,32 @@ install_blackbox_exporter() {
     chown "${BLACKBOX_EXPORTER_USER}:${BLACKBOX_EXPORTER_GROUP}" /usr/local/bin/blackbox_exporter
     chmod 755 /usr/local/bin/blackbox_exporter
 
-    # Copy configuration file
     log_info "Copying Blackbox Exporter configuration"
     if [[ -f "blackbox.yml" ]]; then
         cp blackbox.yml "${BLACKBOX_EXPORTER_CONFIG_DIR}/"
         chown "${BLACKBOX_EXPORTER_USER}:${BLACKBOX_EXPORTER_GROUP}" "${BLACKBOX_EXPORTER_CONFIG_DIR}/blackbox.yml"
         chmod 644 "${BLACKBOX_EXPORTER_CONFIG_DIR}/blackbox.yml"
     else
-        # Create default configuration if not found
         create_default_blackbox_config
     fi
 
-    # Create systemd service
     create_blackbox_exporter_service
 
-    # Reload systemd, enable and start Blackbox Exporter
     reload_systemd
     enable_service "blackbox_exporter"
     start_service "blackbox_exporter"
 
-    # Check if Blackbox Exporter is running
     check_service_status "blackbox_exporter"
+
+    if command_exists prometheus; then
+        add_scrape_config "blackbox" "localhost:${BLACKBOX_EXPORTER_PORT}"
+    else
+        log_warning "Prometheus is not installed. You will need to configure it manually to scrape Blackbox Exporter."
+    fi
 
     log_success "Blackbox Exporter ${version} installed successfully"
 }
 
-# Create default Blackbox Exporter configuration
 create_default_blackbox_config() {
     log_info "Creating default Blackbox Exporter configuration"
 
@@ -136,7 +130,6 @@ EOF
     log_success "Default Blackbox Exporter configuration created"
 }
 
-# Create Blackbox Exporter systemd service
 create_blackbox_exporter_service() {
     local service_content="[Unit]
 Description=Prometheus Blackbox Exporter
@@ -158,7 +151,6 @@ WantedBy=multi-user.target"
     create_systemd_service "blackbox_exporter" "${service_content}"
 }
 
-# Add domain to Prometheus configuration for monitoring
 add_blackbox_target() {
     local domain=$1
     local module=${2:-"http_2xx"}
@@ -166,15 +158,12 @@ add_blackbox_target() {
 
     log_info "Adding Blackbox Exporter target for domain: ${domain}"
 
-    # Check if Prometheus is installed
     if [[ ! -f "${config_file}" ]]; then
         log_warning "Prometheus configuration file not found. Cannot add Blackbox target."
         return 1
     fi
 
-    # Check if blackbox job already exists
     if grep -q "job_name: 'blackbox-exporter'" "${config_file}"; then
-        # Add target to existing job
         local target_line="          - ${domain}"
         if ! grep -q "${target_line}" "${config_file}"; then
             sed -i "/targets:/a\\${target_line}" "${config_file}"
@@ -183,7 +172,6 @@ add_blackbox_target() {
             log_warning "Target ${domain} already exists in Blackbox job"
         fi
     else
-        # Create new blackbox job
         local blackbox_config="  - job_name: 'blackbox-exporter'
     metrics_path: /probe
     params:
@@ -199,34 +187,28 @@ add_blackbox_target() {
       - target_label: __address__
         replacement: localhost:${BLACKBOX_EXPORTER_PORT}"
 
-        # Add to prometheus.yml
         add_yaml_block "${config_file}" "${blackbox_config}" "scrape_configs"
         log_success "Added new Blackbox job with target ${domain}"
     fi
 
-    # Restart Prometheus to apply changes
     if systemctl is-active --quiet prometheus; then
         restart_service "prometheus"
     fi
 }
 
-# Check Blackbox Exporter status
 check_blackbox_exporter() {
     log_info "Checking Blackbox Exporter status"
 
-    # Check if Blackbox Exporter is installed
     if [[ ! -f "/usr/local/bin/blackbox_exporter" ]]; then
         log_error "Blackbox Exporter is not installed"
         return 1
     fi
 
-    # Check if Blackbox Exporter service is running
     if ! systemctl is-active --quiet blackbox_exporter; then
         log_error "Blackbox Exporter service is not running"
         return 1
     fi
 
-    # Check if Blackbox Exporter is responding
     if ! curl -s "http://localhost:${BLACKBOX_EXPORTER_PORT}/metrics" &>/dev/null; then
         log_error "Blackbox Exporter is not responding"
         return 1
@@ -236,11 +218,9 @@ check_blackbox_exporter() {
     return 0
 }
 
-# Uninstall Blackbox Exporter
 uninstall_blackbox_exporter() {
     log_info "Uninstalling Blackbox Exporter"
 
-    # Stop and disable service
     if systemctl is-active --quiet blackbox_exporter; then
         systemctl stop blackbox_exporter
     fi
@@ -248,33 +228,27 @@ uninstall_blackbox_exporter() {
         systemctl disable blackbox_exporter
     fi
 
-    # Remove service file
     if [[ -f "/etc/systemd/system/blackbox_exporter.service" ]]; then
         rm -f "/etc/systemd/system/blackbox_exporter.service"
         systemctl daemon-reload
     fi
 
-    # Remove binary
     if [[ -f "/usr/local/bin/blackbox_exporter" ]]; then
         rm -f "/usr/local/bin/blackbox_exporter"
     fi
 
-    # Ask if configuration should be removed
     read -p "Remove Blackbox Exporter configuration? (y/n): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        # Remove configuration
         if [[ -d "${BLACKBOX_EXPORTER_CONFIG_DIR}" ]]; then
             rm -rf "${BLACKBOX_EXPORTER_CONFIG_DIR}"
         fi
     fi
 
-    # Remove from Prometheus configuration if Prometheus is installed
     if [[ -f "/etc/prometheus/prometheus.yml" ]]; then
         log_info "Removing Blackbox Exporter from Prometheus configuration"
         sed -i '/job_name: .blackbox./,+12d' /etc/prometheus/prometheus.yml
 
-        # Restart Prometheus if it's running
         if systemctl is-active --quiet prometheus; then
             systemctl restart prometheus
         fi
