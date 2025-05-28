@@ -4,7 +4,7 @@
 #
 
 GRAFANA_DEFAULT_PORT="3000"
-GRAFANA_BIND_ADDR="127.0.0.1"
+GRAFANA_BIND_ADDR="0.0.0.0"
 GRAFANA_CONFIG_DIR="/etc/grafana"
 GRAFANA_PROVISIONING_DIR="${GRAFANA_CONFIG_DIR}/provisioning"
 
@@ -133,24 +133,6 @@ copy_provisioning_files() {
     fi
 }
 
-process_env_vars() {
-    local file="$1"
-    local var_name="$2"
-    local var_value="$3"
-
-    if [[ -f "${file}" ]] && [[ -n "${var_value}" ]]; then
-        log_info "Replacing \${${var_name}} with its value in ${file}"
-        sed -i "s|\${${var_name}}|${var_value}|g" "${file}"
-        return 0
-    elif [[ -f "${file}" ]] && [[ -z "${var_value}" ]]; then
-        log_warning "${var_name} environment variable not set. You will need to configure this manually."
-        return 1
-    else
-        log_error "File ${file} does not exist"
-        return 2
-    fi
-}
-
 provision_grafana() {
     local provisioning_source_dir="$1"
 
@@ -181,7 +163,7 @@ provision_grafana() {
 
     if [[ -f "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml" ]] && [[ -n "${PROMETHEUS_PORT:-}" ]]; then
         log_info "Updating Prometheus port in datasource configuration"
-        sed -i "s|localhost:[0-9]*|127.0.0.1:${PROMETHEUS_PORT:-9090}|g" "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml"
+        sed -i "s|localhost:[0-9]*|0.0.0.0:${PROMETHEUS_PORT:-9090}|g" "${GRAFANA_PROVISIONING_DIR}/datasources/prometheus.yml"
     fi
 
     if [[ -f "${GRAFANA_PROVISIONING_DIR}/dashboards/default.yml" ]]; then

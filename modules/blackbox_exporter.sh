@@ -51,9 +51,40 @@ install_blackbox_exporter() {
     check_service_status "blackbox_exporter"
 
     if command_exists prometheus; then
-        add_scrape_config "blackbox" "localhost:${BLACKBOX_EXPORTER_PORT}"
+        local config_file="/etc/prometheus/prometheus.yml"
+        if [[ -f "${config_file}" ]]; then
+            # Check if the blackbox job already exists
+            if ! grep -q "job_name: 'blackbox'" "${config_file}"; then
+                log_info "Adding Blackbox Exporter scrape config to Prometheus"
+                # Append the specific Blackbox job configuration
+                cat << EOF >> "${config_file}"
+
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # Default module, can be overridden per target
+    static_configs:
+      - targets:
+        - DOMAIN # Placeholder - user needs to replace this
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:${BLACKBOX_EXPORTER_PORT} # Blackbox exporter endpoint
+EOF
+                log_success "Appended Blackbox job to Prometheus config."
+                # Optionally reload Prometheus config if it's running
+                reload_prometheus_config
+            else
+                log_warning "Blackbox job already exists in Prometheus config. Skipping."
+            fi
+        else
+            log_warning "Prometheus configuration file (${config_file}) not found. Cannot add Blackbox scrape config."
+        fi
     else
-        log_warning "Prometheus is not installed. You will need to configure it manually to scrape Blackbox Exporter."
+        log_warning "Prometheus is not installed. Skipping Blackbox scrape config addition."
     fi
 
     log_success "Blackbox Exporter ${version} installed successfully"
@@ -163,7 +194,7 @@ add_blackbox_target() {
         return 1
     fi
 
-    if grep -q "job_name: 'blackbox-exporter'" "${config_file}"; then
+    if grep -q "job_name: 'blackbox'" "${config_file}"; then
         local target_line="          - ${domain}"
         if ! grep -q "${target_line}" "${config_file}"; then
             sed -i "/targets:/a\\${target_line}" "${config_file}"
@@ -172,7 +203,7 @@ add_blackbox_target() {
             log_warning "Target ${domain} already exists in Blackbox job"
         fi
     else
-        local blackbox_config="  - job_name: 'blackbox-exporter'
+        local blackbox_config="  - job_name: 'blackbox'
     metrics_path: /probe
     params:
       module: [${module}]
@@ -247,11 +278,15 @@ uninstall_blackbox_exporter() {
 
     if [[ -f "/etc/prometheus/prometheus.yml" ]]; then
         log_info "Removing Blackbox Exporter from Prometheus configuration"
-        sed -i '/job_name: .blackbox./,+12d' /etc/prometheus/prometheus.yml
 
-        if systemctl is-active --quiet prometheus; then
-            systemctl restart prometheus
-        fi
+        # Remove the entire Blackbox job block using sed with address range
+        # The pattern matches the start and end lines of the block precisely.
+        # Using a temporary file for safety with sed -i might be better in complex scripts,
+        # but for this specific, known block, direct -i is common. Added .bak for backup.
+        sed -i.bak "/^- job_name: 'blackbox'/,/replacement: localhost:${BLACKBOX_EXPORTER_PORT}/d" /etc/prometheus/prometheus.yml
+        log_info "Removed Blackbox job configuration from Prometheus."
+
+        reload_prometheus_config
     fi
 
     log_success "Blackbox Exporter uninstalled"

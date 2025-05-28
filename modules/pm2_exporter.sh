@@ -158,7 +158,7 @@ RUNCMD
     fi
 
     if command_exists prometheus && [[ -f "/etc/prometheus/prometheus.yml" ]]; then
-        add_scrape_config "pm2" "127.0.0.1:${PM2_EXPORTER_PORT}"
+        add_prometheus_scrape_config "pm2" "127.0.0.1:${PM2_EXPORTER_PORT}"
     else
         log_warning "Prometheus is not installed or config file not found. Configure manually to scrape PM2 Exporter."
     fi
@@ -213,7 +213,13 @@ uninstall_pm2_exporter() {
          log_info "Installation directory not found or user home unknown, skipping removal: ${PM2_EXPORTER_INSTALL_DIR}"
     fi
 
-    remove_scrape_config "pm2"
+    if [[ -f "/etc/prometheus/prometheus.yml" ]]; then
+        log_info "Removing PM2 Exporter from Prometheus configuration"
+        # Remove the job configuration block using sed
+        sed -i "/^\s*-\s*job_name:\s*'pm2'/,+2d" /etc/prometheus/prometheus.yml
+        # Reload Prometheus if it's running
+        reload_prometheus_config
+    fi
 
     log_success "PM2 Exporter uninstalled for user ${PM2_USER}"
 }

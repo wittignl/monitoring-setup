@@ -263,61 +263,9 @@ backup_config_file() {
 
 
 PROMETHEUS_CONF_DIR="/etc/prometheus"
-PROMETHEUS_SCRAPE_CONF_DIR="${PROMETHEUS_CONF_DIR}/conf.d"
 PROMETHEUS_USER="prometheus"
 PROMETHEUS_GROUP="prometheus"
 
-add_scrape_config() {
-    local job_name=$1
-    local target=$2
-    local scrape_interval=${3:-15s}
-    local metrics_path=${4:-/metrics}
-    local scheme=${5:-http}
-    local extra_labels_yaml=${6:-""}
-
-    local config_file="${PROMETHEUS_SCRAPE_CONF_DIR}/${job_name}.yml"
-
-    log_info "Adding Prometheus scrape config file for job '${job_name}': ${config_file}"
-
-    if [[ ! -d "${PROMETHEUS_SCRAPE_CONF_DIR}" ]]; then
-        log_warning "Prometheus scrape config directory ${PROMETHEUS_SCRAPE_CONF_DIR} does not exist. Creating it."
-        create_directory "${PROMETHEUS_SCRAPE_CONF_DIR}" "${PROMETHEUS_USER}" "${PROMETHEUS_GROUP}" "0750"
-    fi
-
-    local yaml_content="- targets:
-    - '${target}'
-  labels:
-    job: '${job_name}'"
-
-    if [[ -n "${extra_labels_yaml}" ]]; then
-        yaml_content+="\n${extra_labels_yaml}"
-    fi
-
-
-    echo -e "${yaml_content}" > "${config_file}" || handle_error "Failed to write Prometheus scrape config file: ${config_file}"
-
-    chown "${PROMETHEUS_USER}:${PROMETHEUS_GROUP}" "${config_file}" || handle_error "Failed to set ownership on ${config_file}"
-    chmod 640 "${config_file}" || handle_error "Failed to set permissions on ${config_file}"
-
-    log_success "Prometheus scrape config file created: ${config_file}"
-
-    reload_prometheus_config
-}
-
-remove_scrape_config() {
-    local job_name=$1
-    local config_file="${PROMETHEUS_SCRAPE_CONF_DIR}/${job_name}.yml"
-
-    log_info "Removing Prometheus scrape config file for job '${job_name}': ${config_file}"
-
-    if [[ -f "${config_file}" ]]; then
-        rm -f "${config_file}" || handle_error "Failed to remove Prometheus scrape config file: ${config_file}"
-        log_success "Prometheus scrape config file removed: ${config_file}"
-        reload_prometheus_config
-    else
-        log_warning "Prometheus scrape config file not found, nothing to remove: ${config_file}"
-    fi
-}
 
 reload_prometheus_config() {
     if systemctl list-units --full -all | grep -q 'prometheus.service'; then
@@ -331,6 +279,58 @@ reload_prometheus_config() {
     else
         log_info "Prometheus service not found. Skipping reload."
     fi
+}
+
+add_prometheus_scrape_config() {
+    local job_name=$1
+    local target=$2
+    local config_file="/etc/prometheus/prometheus.yml"
+
+    log_info "Attempting to add Prometheus scrape config for job '${job_name}' to ${config_file}"
+
+    # Ensure the config file exists
+    if [[ ! -f "${config_file}" ]]; then
+        log_error "Prometheus configuration file ${config_file} not found. Cannot add scrape config."
+        # Return non-zero, let the caller handle if it's fatal
+        return 1
+    fi
+
+    # Ensure scrape_configs key exists (should always be true after base config creation)
+    if ! grep -q "^scrape_configs:" "${config_file}"; then
+        log_warning "scrape_configs key not found in ${config_file}. Adding it."
+        # Append with a newline just in case the file doesn't end with one
+        echo -e "\nscrape_configs:" >> "${config_file}" || { log_error "Failed to add scrape_configs key to ${config_file}"; return 1; }
+    fi
+
+    # Check if job already exists (simple grep check for the job_name line)
+    # This assumes job names are unique and avoids complex YAML parsing in shell
+    if grep -Eq "^\s*-\s*job_name:\s*'${job_name}'" "${config_file}"; then
+        log_info "Job '${job_name}' already exists in ${config_file}. Skipping."
+        return 0
+    fi
+
+    log_info "Adding scrape config for job '${job_name}'"
+
+    # Append the new job configuration using cat << EOF to preserve formatting
+    # Ensure a newline before the appended block in case the file doesn't end with one
+    cat >> "${config_file}" << EOF
+
+  - job_name: '${job_name}'
+    static_configs:
+      - targets: ['${target}']
+EOF
+
+    if [[ $? -ne 0 ]]; then
+        log_error "Failed to append scrape config for job '${job_name}' to ${config_file}"
+        return 1
+    fi
+
+    log_success "Successfully added scrape config for job '${job_name}' to ${config_file}"
+
+    # Reload Prometheus config using the existing function
+    reload_prometheus_config
+    # Return the exit code of the reload command
+    return $?
 }
 
 version_gt() {

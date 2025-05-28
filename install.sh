@@ -248,7 +248,7 @@ install_components() {
     fi
 
     if [[ "${INSTALL_MYSQL_EXPORTER}" == "true" ]]; then
-        install_mysql_exporter "${COMPONENT_VERSION}" "mysqld_exporter" "${MYSQL_EXPORTER_PASSWORD}"
+        install_mysql_exporter "${COMPONENT_VERSION}" "monitoring" "${MYSQL_EXPORTER_PASSWORD}"
     fi
 
     if [[ "${INSTALL_PM2_EXPORTER}" == "true" ]]; then
@@ -327,7 +327,7 @@ display_status() {
 
     if [[ "${INSTALL_MYSQL_EXPORTER}" == "true" ]]; then
         if check_mysql_exporter; then
-             log_info "MySQL Exporter user: mysqld_exporter (Manual creation required, see README)"
+             log_info "MySQL Exporter user: monitoring (Manual creation required, see README)"
              log_info "MySQL Exporter config file: ${MYSQL_EXPORTER_CONFIG_FILE:-/etc/.mysqld_exporter.cnf}"
         fi
     fi

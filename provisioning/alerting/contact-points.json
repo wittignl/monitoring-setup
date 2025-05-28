@@ -10,9 +10,7 @@
           "type": "slack",
           "disableResolveMessage": false,
           "settings": {
-            "url": "${MATTERMOST_WEBHOOK_URL}",
-            "title": "[{{ .Status | toUpper }}{{ if eq .Status \"firing\" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}",
-            "text": "{{ range .Alerts }}**{{ .Status | toUpper }}**\\n**Alert:** {{ .Annotations.summary }}\\n**Severity:** {{ .Labels.severity | default \"N/A\" }}\\n**Instance:** {{ .Labels.instance }}\\n**Description:** {{ .Annotations.description }}\\n**Value:** {{ .ValueString }}\\n**Grafana:** <{{ .GeneratorURL }}|Link>\\n\\n{{ end }}"
+            "url": "${MATTERMOST_WEBHOOK_URL}"
           }
         }
       ]

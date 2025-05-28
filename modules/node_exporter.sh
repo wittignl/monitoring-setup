@@ -39,7 +39,7 @@ install_node_exporter() {
     check_service_status "node_exporter"
 
     if command_exists prometheus; then
-        add_scrape_config "node_exporter" "localhost:${NODE_EXPORTER_PORT}"
+        add_prometheus_scrape_config "node_exporter" "localhost:${NODE_EXPORTER_PORT}"
     else
         log_warning "Prometheus is not installed. You will need to configure it manually to scrape Node Exporter."
     fi
@@ -112,15 +112,12 @@ uninstall_node_exporter() {
     if [[ -f "/etc/prometheus/prometheus.yml" ]]; then
         log_info "Removing Node Exporter from Prometheus configuration"
 
-        if type remove_scrape_config &>/dev/null; then
-            remove_scrape_config "node_exporter"
-        else
-            sed -i '/job_name: .node_exporter./,+3d' /etc/prometheus/prometheus.yml
+        # Remove the job configuration block using sed
+        # Matches the start of the job_name line and deletes it plus the next 2 lines
+        sed -i "/^\s*-\s*job_name:\s*'node_exporter'/,+2d" /etc/prometheus/prometheus.yml
 
-            if systemctl is-active --quiet prometheus; then
-                systemctl restart prometheus
-            fi
-        fi
+        # Reload Prometheus if it's running
+        reload_prometheus_config
     fi
 
     log_success "Node Exporter uninstalled"

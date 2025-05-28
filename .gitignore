@@ -1,3 +1,5 @@
+.DS_Store
+
 *.md
 !memory-bank/*
 !README.md

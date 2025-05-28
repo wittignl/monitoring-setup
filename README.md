@@ -103,8 +103,8 @@ The script **does not** create the MySQL user for the exporter. You must create 
 Connect to your MySQL server as root or another privileged user:
 
 ```sql
-CREATE USER 'mysqld_exporter'@'localhost' IDENTIFIED BY 'your_secure_mysql_password' WITH MAX_USER_CONNECTIONS 3;
-GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'mysqld_exporter'@'localhost';
+CREATE USER 'monitoring'@'localhost' IDENTIFIED BY 'your_secure_mysql_password' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'monitoring'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -169,7 +169,7 @@ The uninstallation process attempts to:
 - Manually installed dependencies (`mysql-client`, etc.).
 - The application user specified via `--pm2-user`.
 - NVM, Node.js, or PM2 installations within the application user's home directory.
-- The manually created MySQL user (`mysqld_exporter`).
+- The manually created MySQL user (`monitoring`).
 
 ## Troubleshooting
 
@@ -187,7 +187,7 @@ The uninstallation process attempts to:
   - Verify the `--pm2-user` exists and has PM2 running (`runuser -u USERNAME -- pm2 list`).
   - Check logs for the `pm2-prometheus-exporter` module within the user's PM2 logs (`runuser -u USERNAME -- pm2 logs pm2-prometheus-exporter`).
 - **MySQL Exporter Issues:**
-  - Ensure the `mysqld_exporter` MySQL user exists and the password in `/etc/.mysqld_exporter.cnf` matches the one set during manual creation.
+  - Ensure the `monitoring` MySQL user exists and the password in `/etc/.mysqld_exporter.cnf` matches the one set during manual creation.
   - Check MySQL grant privileges.
 - **Configuration Validation:**
   - Prometheus: `sudo /usr/local/bin/prometheus/promtool check config /etc/prometheus/prometheus.yml`

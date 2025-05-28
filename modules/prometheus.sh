@@ -78,7 +78,7 @@ ExecStart=${PROMETHEUS_BIN_DIR}/prometheus \\
     --storage.tsdb.path=${PROMETHEUS_DATA_DIR} \\
     --web.console.templates=${PROMETHEUS_CONFIG_DIR}/consoles \\
     --web.console.libraries=${PROMETHEUS_CONFIG_DIR}/console_libraries \\
-    --web.listen-address=127.0.0.1:${PROMETHEUS_PORT}
+    --web.listen-address=0.0.0.0:${PROMETHEUS_PORT}
 SyslogIdentifier=prometheus
 Restart=always
 
@@ -89,7 +89,6 @@ WantedBy=multi-user.target"
 }
 
 create_base_prometheus_config() {
-    local config_file="${PROMETHEUS_CONFIG_DIR}/prometheus.yml"
     local config_file="${PROMETHEUS_CONFIG_DIR}/prometheus.yml"
 
     if [[ ! -f "${config_file}" ]]; then
@@ -102,18 +101,12 @@ global:
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['127.0.0.1:${PROMETHEUS_PORT}']
+      - targets: ['127.0.0.1:${PROMETHEUS_PORT}'] # Default: 9090
 
-  - job_name: 'file_sd_exporters'
-    file_sd_configs:
-      - files:
-          - '${PROMETHEUS_CONFIG_DIR}/conf.d/*.yml'
-          - '${PROMETHEUS_CONFIG_DIR}/conf.d/*.json'
-        refresh_interval: 1m
 EOF
         chown "${PROMETHEUS_USER}:${PROMETHEUS_GROUP}" "${config_file}"
         chmod 644 "${config_file}"
-        log_success "Created base Prometheus configuration with file_sd"
+        log_success "Created base Prometheus configuration"
     else
         log_info "Prometheus configuration file ${config_file} already exists, skipping creation."
         # Ensure permissions are still correct in case they were changed

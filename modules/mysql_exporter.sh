@@ -56,7 +56,7 @@ install_mysql_exporter() {
     check_service_status "mysql_exporter"
 
     if command_exists prometheus; then
-        add_scrape_config "mysql" "localhost:${MYSQL_EXPORTER_PORT}"
+        add_prometheus_scrape_config "mysql" "localhost:${MYSQL_EXPORTER_PORT}"
     else
         log_warning "Prometheus is not installed. You will need to configure it manually to scrape MySQL Exporter."
     fi
@@ -172,11 +172,11 @@ uninstall_mysql_exporter() {
 
     if [[ -f "/etc/prometheus/prometheus.yml" ]]; then
         log_info "Removing MySQL Exporter from Prometheus configuration"
-        sed -i '/job_name: .mysql./,+3d' /etc/prometheus/prometheus.yml
+        # Remove the job configuration block using sed
+        sed -i "/^\s*-\s*job_name:\s*'mysql'/,+2d" /etc/prometheus/prometheus.yml
 
-        if systemctl is-active --quiet prometheus; then
-            systemctl restart prometheus
-        fi
+        # Reload Prometheus if it's running
+        reload_prometheus_config
     fi
 
     log_success "MySQL Exporter uninstalled"
